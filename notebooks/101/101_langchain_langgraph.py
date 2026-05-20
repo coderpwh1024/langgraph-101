@@ -7,6 +7,7 @@ from langchain.agents import create_agent
 from langchain_core.tools import tool
 import requests
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
+from langgraph.checkpoint.memory import MemorySaver
 from requests_toolbelt.multipart.encoder import to_list
 
 project_root = Path().resolve().parent.parent
@@ -120,16 +121,29 @@ if resultTool.tool_calls:
 print("\n")
 print("-----------------------------04部分构建 Agent---------------------------------------")
 
-
 anget = create_agent(
     model=model,
-    tools=[get_weather,search_movies],
+    tools=[get_weather, search_movies],
     system_prompt="""你是一个能查询天气和推荐电影的智能助手"""
 )
 
 agentResult = anget.invoke({
-    "messages":[HumanMessage(content="纽约的天气怎么样?(北纬 40.71°,西经 74.01°)另外推荐几部科幻电影")]
+    "messages": [HumanMessage(content="纽约的天气怎么样?(北纬 40.71°,西经 74.01°)另外推荐几部科幻电影")]
 })
 
 for message in agentResult["messages"]:
     message.pretty_print()
+
+print("\n")
+print("-----------------------------05 Agent 记忆与状态---------------------------------------")
+
+checkpointer = MemorySaver();
+
+agent_with_memory = create_agent(
+    model=model,
+    tools=[get_weather, search_movies],
+    system_prompt="你是一个智能助手!",
+    checkpointer=checkpointer
+)
+
+config ={};
