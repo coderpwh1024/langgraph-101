@@ -1,10 +1,10 @@
-import datetime
 import json
 import sys
+from http.client import responses
 from pathlib import Path
-
+from langchain_core.tools import tool
 import requests
-from langchain_core.messages import SystemMessage, HumanMessage, tool
+from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 
 project_root = Path().resolve().parent.parent
 if str(project_root) not in sys.path:
@@ -24,21 +24,21 @@ warnings.filterwarnings('ignore', message="LangSmith now uses UUID v7")
 # print(f"耗时:{end-begin}")
 print("---------------------------------------------------------------------------------")
 
-messages = [
-    SystemMessage(content="你是一个乐于助人的 AI 助手，擅长用简单的语言解释技术概念。"),
-    HumanMessage(content="什么是智能体（agent）？")
-]
+# messages = [
+#     SystemMessage(content="你是一个乐于助人的 AI 助手，擅长用简单的语言解释技术概念。"),
+#     HumanMessage(content="什么是智能体（agent）？")
+# ]
 
-resultMessage = model.invoke(messages)
-resultMessage.pretty_print();
+# resultMessage = model.invoke(messages)
+# resultMessage.pretty_print();
 print("---------------------------------------------------------------------------------")
 print("-----------------------------02开始回答示列部分---------------------------------------")
 
 # 多轮对话
-messages.append(resultMessage)
-messages.append(HumanMessage(content="请用中文给我举一个例子"))
-resultMessage = model.invoke(messages)
-resultMessage.pretty_print();
+# messages.append(resultMessage)
+# messages.append(HumanMessage(content="请用中文给我举一个例子"))
+# resultMessage = model.invoke(messages)
+# resultMessage.pretty_print();
 
 print("-----------------------------03开始进行Tool工具部分---------------------------------------")
 
@@ -84,7 +84,32 @@ def get_weather(latitude: float, longitude: float) -> str:
         "temperature_fahrenheit": temperature,
         "weather_code": weather_code
     }
-    return json.dump(result)
+    return json.dumps(result)
 
 
 print(get_weather.invoke({"latitude": 37.77, "longitude": 122.42}))
+
+tools = [search_movies, get_weather]
+model_with_tools = model.bind_tools(tools)
+message = "西雅图的天气怎么样？（西雅图的坐标大约是北纬 47.6°，西经 122.33°）"
+resultTool = model_with_tools.invoke(message)
+print("工具:",resultTool.tool_calls)
+
+if resultTool.tool_calls:
+   tool_call = resultTool.tool_calls[0]
+
+   if tool_call["name"]=="get_weather":
+         result = get_weather.invoke(tool_call["args"])
+   elif tool_call["name"]=="search_movies":
+         result = search_movies.invoke(tool_call["args"])
+
+   tool_message = ToolMessage(
+       content=result,
+       tool_call_id=tool_call["id"]
+   )
+
+   final_response=model_with_tools.invoke([
+       HumanMessage(content=message),
+       resultTool,
+       tool_message])
+   final_response.pretty_print()
