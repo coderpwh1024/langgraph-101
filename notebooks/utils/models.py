@@ -1,7 +1,23 @@
-from dotenv import  load_dotenv
-load_dotenv(override= True)
-from langchain.chat_models import init_chat_model
-model = init_chat_model("anthropic:claude-haiku-4-5")
+import os
+
+from dotenv import load_dotenv
+load_dotenv(override=True)
+
+from langchain_openai import ChatOpenAI
+
+# ---- 阿里云百炼 (DashScope) - OpenAI 兼容模式 -------------------------------
+# 使用前请在系统环境变量或 .env 文件中设置 DASHSCOPE_API_KEY
+# 可在阿里云百炼控制台获取: https://bailian.console.aliyun.com/?apiKey=1
+model = ChatOpenAI(
+    model="qwen-plus",
+    api_key=os.getenv("DASHSCOPE_API_KEY"),
+    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+)
+
+
+# ---- Anthropic ------------------------------------------------------------
+# from langchain.chat_models import init_chat_model
+# model = init_chat_model("anthropic:claude-haiku-4-5")
 
 
 
@@ -10,6 +26,7 @@ model = init_chat_model("anthropic:claude-haiku-4-5")
 # from azure.identity import InteractiveBrowserCredential
 
 # credential = InteractiveBrowserCredential()
+
 
 # def get_token():
 #     token = credential.get_token("https://cognitiveservices.azure.com/.default")

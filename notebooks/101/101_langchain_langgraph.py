@@ -13,5 +13,5 @@ from utils.models import model
 import  warnings
 warnings.filterwarnings('ignore',message="LangSmith now uses UUID v7")
 
-result = model.invoke("What is the meaning of life?")
+result = model.invoke("解释一下什么是智能体?")
 result.pretty_print();
