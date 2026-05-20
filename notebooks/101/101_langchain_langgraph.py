@@ -2,9 +2,12 @@ import json
 import sys
 from http.client import responses
 from pathlib import Path
+
+from langchain.agents import create_agent
 from langchain_core.tools import tool
 import requests
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
+from requests_toolbelt.multipart.encoder import to_list
 
 project_root = Path().resolve().parent.parent
 if str(project_root) not in sys.path:
@@ -93,23 +96,40 @@ tools = [search_movies, get_weather]
 model_with_tools = model.bind_tools(tools)
 message = "西雅图的天气怎么样？（西雅图的坐标大约是北纬 47.6°，西经 122.33°）"
 resultTool = model_with_tools.invoke(message)
-print("工具:",resultTool.tool_calls)
+print("工具:", resultTool.tool_calls)
 
 if resultTool.tool_calls:
-   tool_call = resultTool.tool_calls[0]
+    tool_call = resultTool.tool_calls[0]
 
-   if tool_call["name"]=="get_weather":
-         result = get_weather.invoke(tool_call["args"])
-   elif tool_call["name"]=="search_movies":
-         result = search_movies.invoke(tool_call["args"])
+    if tool_call["name"] == "get_weather":
+        result = get_weather.invoke(tool_call["args"])
+    elif tool_call["name"] == "search_movies":
+        result = search_movies.invoke(tool_call["args"])
 
-   tool_message = ToolMessage(
-       content=result,
-       tool_call_id=tool_call["id"]
-   )
+    tool_message = ToolMessage(
+        content=result,
+        tool_call_id=tool_call["id"]
+    )
 
-   final_response=model_with_tools.invoke([
-       HumanMessage(content=message),
-       resultTool,
-       tool_message])
-   final_response.pretty_print()
+    final_response = model_with_tools.invoke([
+        HumanMessage(content=message),
+        resultTool,
+        tool_message])
+    final_response.pretty_print()
+
+print("\n")
+print("-----------------------------04部分构建 Agent---------------------------------------")
+
+
+anget = create_agent(
+    model=model,
+    tools=[get_weather,search_movies],
+    system_prompt="""你是一个能查询天气和推荐电影的智能助手"""
+)
+
+agentResult = anget.invoke({
+    "messages":[HumanMessage(content="纽约的天气怎么样?(北纬 40.71°,西经 74.01°)另外推荐几部科幻电影")]
+})
+
+for message in agentResult["messages"]:
+    message.pretty_print()
