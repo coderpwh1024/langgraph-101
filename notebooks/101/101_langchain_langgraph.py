@@ -1,6 +1,6 @@
+import datetime
 import json
 import sys
-from http.client import responses
 from pathlib import Path
 
 from langchain.agents import create_agent
@@ -9,7 +9,6 @@ import requests
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langsmith import uuid7
-from requests_toolbelt.multipart.encoder import to_list
 
 project_root = Path().resolve().parent.parent
 if str(project_root) not in sys.path:
@@ -21,29 +20,29 @@ import warnings
 
 warnings.filterwarnings('ignore', message="LangSmith now uses UUID v7")
 
-# begin = datetime.datetime.now()
-# result = model.invoke("解释一下什么是智能体?")
-# result.pretty_print();
+begin = datetime.datetime.now()
+result = model.invoke("解释一下什么是智能体?")
+result.pretty_print();
 
-# end = datetime.datetime.now()
-# print(f"耗时:{end-begin}")
+end = datetime.datetime.now()
+print(f"耗时:{end-begin}")
 print("---------------------------------------------------------------------------------")
 
-# messages = [
-#     SystemMessage(content="你是一个乐于助人的 AI 助手，擅长用简单的语言解释技术概念。"),
-#     HumanMessage(content="什么是智能体（agent）？")
-# ]
+messages = [
+    SystemMessage(content="你是一个乐于助人的 AI 助手，擅长用简单的语言解释技术概念。"),
+    HumanMessage(content="什么是智能体（agent）？")
+]
 
-# resultMessage = model.invoke(messages)
-# resultMessage.pretty_print();
+resultMessage = model.invoke(messages)
+resultMessage.pretty_print();
 print("---------------------------------------------------------------------------------")
 print("-----------------------------02开始回答示列部分---------------------------------------")
 
 # 多轮对话
-# messages.append(resultMessage)
-# messages.append(HumanMessage(content="请用中文给我举一个例子"))
-# resultMessage = model.invoke(messages)
-# resultMessage.pretty_print();
+messages.append(resultMessage)
+messages.append(HumanMessage(content="请用中文给我举一个例子"))
+resultMessage = model.invoke(messages)
+resultMessage.pretty_print();
 
 print("-----------------------------03开始进行Tool工具部分---------------------------------------")
 
@@ -174,7 +173,7 @@ print("-----------------------------06 Stream 流式响应----------------------
 
 print("开始进行流式响应\n")
 
-for chunk in agentResult.stream(
+for chunk in agent.stream(
         {"messages": [{"role": "user", "content": "波士顿的天气怎么样？（北纬42.36°，西经71.06°）"}]},
         stream_mode="updates"
 ):
