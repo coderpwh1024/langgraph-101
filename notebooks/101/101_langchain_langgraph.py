@@ -121,13 +121,13 @@ if resultTool.tool_calls:
 print("\n")
 print("-----------------------------04部分构建 Agent---------------------------------------")
 
-anget = create_agent(
+agent = create_agent(
     model=model,
     tools=[get_weather, search_movies],
     system_prompt="""你是一个能查询天气和推荐电影的智能助手"""
 )
 
-agentResult = anget.invoke({
+agentResult = agent.invoke({
     "messages": [HumanMessage(content="纽约的天气怎么样?(北纬 40.71°,西经 74.01°)另外推荐几部科幻电影")]
 })
 
