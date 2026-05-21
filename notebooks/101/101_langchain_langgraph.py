@@ -191,13 +191,15 @@ for chunk in agent.stream(
 print("\n")
 print("流式token")
 
-for token,metadata in agent.stream(
-        {"messages":[{"role":"user","content":"用一句话介绍一下LangGraph。用一句话介绍一下LangGraph。"}]},
-    stream_mode="messages"
+full = None
+for token, metadata in agent.stream(
+        {"messages": [{"role": "user", "content": "用一句话介绍一下LangGraph。用一句话介绍一下LangGraph。"}]},
+        stream_mode="messages"
 ):
-    if metadata.get('langgraph_node')=='model':
+    if metadata.get('langgraph_node') == 'model':
         for block in token.content_blocks:
-            if block.get('type')=='text'and block.get('text'):
-                print(block['text'],end='',flush=True)
+            if block.get('type') == 'text' and block.get('text'):
+                print(block['text'], end='', flush=True)
 
 print("\n")
+print()
