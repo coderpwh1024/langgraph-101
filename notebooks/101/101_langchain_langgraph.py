@@ -169,3 +169,22 @@ result3 = agent_with_memory.invoke(
 )
 
 print("返回结果3:", result3["messages"][-1].content)
+print("\n")
+print("-----------------------------06 Stream 流式响应---------------------------------------")
+
+print("开始进行流式响应\n")
+
+for chunk in agentResult.stream(
+        {"messages": [{"role": "user", "content": "波士顿的天气怎么样？（北纬42.36°，西经71.06°）"}]},
+        stream_mode="updates"
+):
+    for node_name, data in chunk.items():
+        print(f"Step:{node_name}")
+        if "message" in data:
+            message = data["message"][-1]
+            if hasattr(message, 'tool_calls') and message.tool_calls:
+                print(f" Tool call:{message.tool_calls[0]['name']}")
+            elif hasattr(message, 'content'):
+                print(f"Content:{message.content[:100]}..." if len(
+                    message.content) > 100 else f"Content:{message.content}")
+            print()
