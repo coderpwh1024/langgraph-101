@@ -8,6 +8,7 @@ from langchain_core.tools import tool
 import requests
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
+from langsmith import uuid7
 from requests_toolbelt.multipart.encoder import to_list
 
 project_root = Path().resolve().parent.parent
@@ -146,4 +147,17 @@ agent_with_memory = create_agent(
     checkpointer=checkpointer
 )
 
-config ={};
+config = {"configurable": {"thread_id": uuid7()}}
+
+result1 = agent_with_memory.invoke(
+    {"messages": [{"role": "user", "content": "我的名字是 Alice，我喜欢科幻电影"}]},
+    config=config
+)
+
+print("返回结果1:",result1["messages"][-1].content)
+
+result2 = agent_with_memory.invoke(
+    {"messages": [{"role": "user", "content": "我叫什么名字，我喜欢什么电影?"}]},
+    config=config
+)
+print("返回结果2:",result2["messages"][-1].content)
