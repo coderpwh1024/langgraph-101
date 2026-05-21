@@ -25,7 +25,7 @@ result = model.invoke("解释一下什么是智能体?")
 result.pretty_print();
 
 end = datetime.datetime.now()
-print(f"耗时:{end-begin}")
+print(f"耗时:{end - begin}")
 print("---------------------------------------------------------------------------------")
 
 messages = [
@@ -179,11 +179,25 @@ for chunk in agent.stream(
 ):
     for node_name, data in chunk.items():
         print(f"Step:{node_name}")
-        if "message" in data:
-            message = data["message"][-1]
+        if "messages" in data:
+            message = data["messages"][-1]
             if hasattr(message, 'tool_calls') and message.tool_calls:
                 print(f" Tool call:{message.tool_calls[0]['name']}")
             elif hasattr(message, 'content'):
                 print(f"Content:{message.content[:100]}..." if len(
                     message.content) > 100 else f"Content:{message.content}")
             print()
+
+print("\n")
+print("流式token")
+
+for token,metadata in agent.stream(
+        {"messages":[{"role":"user","content":"用一句话介绍一下LangGraph。用一句话介绍一下LangGraph。"}]},
+    stream_mode="messages"
+):
+    if metadata.get('langgraph_node')=='model':
+        for block in token.content_blocks:
+            if block.get('type')=='text'and block.get('text'):
+                print(block['text'],end='',flush=True)
+
+print("\n")
