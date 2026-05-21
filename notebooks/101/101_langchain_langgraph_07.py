@@ -8,7 +8,7 @@ from langsmith import uuid7
 
 from utils.models import model
 
-
+# 天气查询工具
 @tool
 def get_weather(latitude: float, longitude: float) -> str:
     """获取指定坐标的当前温度（华氏度）和天气代码。
