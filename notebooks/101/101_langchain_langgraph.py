@@ -154,10 +154,18 @@ result1 = agent_with_memory.invoke(
     config=config
 )
 
-print("返回结果1:",result1["messages"][-1].content)
+print("返回结果1:", result1["messages"][-1].content)
 
 result2 = agent_with_memory.invoke(
     {"messages": [{"role": "user", "content": "我叫什么名字，我喜欢什么电影?"}]},
     config=config
 )
-print("返回结果2:",result2["messages"][-1].content)
+print("返回结果2:", result2["messages"][-1].content)
+
+new_config_with_new_thread_id = {"configurable": {"thread_id": uuid7()}};
+result3 = agent_with_memory.invoke(
+    {"messages": [{"role": "user", "content": "我叫什么名字?"}]},
+    config=new_config_with_new_thread_id
+)
+
+print("返回结果3:", result3["messages"][-1].content)
