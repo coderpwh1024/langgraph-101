@@ -71,10 +71,10 @@ model_with_tools = model.bind_tools(tools)
 
 # 助手
 def assistant(state: State):
-    system_prompt = """你是一个有用的助手，可以查询天气并推荐电影""",
-    all_messages = [SystemMessage(system_prompt)] + state["messages"]
+    system_prompt = """你是一个有用的助手，可以查询天气并推荐电影"""
+    all_messages = [SystemMessage(content=system_prompt)] + state["messages"]
     response = model_with_tools.invoke(all_messages)
-    return {"messages:"[response]}
+    return {"messages": [response]}
 
 
 # 判断是否继续
@@ -101,7 +101,7 @@ builder.add_conditional_edges(
     }
 )
 
-builder.add_edge("tool_name", "assistant")
+builder.add_edge("tool_node", "assistant")
 agent = builder.compile(name="agent")
 
 question = "今天旧金山（北纬37.77°，西经122.42°）的天气怎么样？有什么好看的科幻电影推荐吗？"
