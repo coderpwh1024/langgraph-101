@@ -87,4 +87,60 @@ print("最终的响应")
 print("\n")
 print(result["messages"][-1].content)
 
-print("--------------------------------------------------------------------------------------------")
+print("\n")
+print("-------------------------------------------02-高级模式-------------------------------------------------")
+
+
+# 发送邮件工具
+@tool
+def send_email_v2(to: str, subject: str, body: str) -> str:
+    """向收件人发送一封邮件。"""
+    response = interrupt({
+        "action": "send_email",
+        "to": to,
+        "subject": subject,
+        "body": body,
+        "message": "请审阅这封邮件。你可以批准、拒绝或编辑它"
+    })
+    if response["type"] == "approve":
+        return f"邮件发送给{to},主题:{subject}"
+    elif response["type"] == "reject":
+        return f"邮件被拒绝"
+    elif response["type"] == "edit":
+        to = response.get("to")
+        subject = response.get("subject")
+        body = response.get("body")
+        return f"邮件修改成功，新的邮件已发送给{to},主题:{subject},内容:{body}"
+
+    return "不知道返回的结果"
+
+
+# 创建代理
+agnet_v2 = create_agent(
+    model=model,
+    tools=[send_email_v2],
+    system_prompt="""你是一个邮件助手""",
+    checkpointer=MemorySaver()
+)
+
+config_3 = {"configurable": {"thread_id": uuid7()}}
+
+result = agnet_v2.invoke(
+    {
+        "messages": [HumanMessage(content="给 team@example.com 发一封关于会议的邮件")]
+    },
+    config=config_3
+)
+print("已暂停,等待审核")
+
+result = agnet_v2.invoke(
+    Command(resume={
+        "type": "edit",
+        "subject": "紧急：今天下午2点开会",
+        "body": "这是编辑后的邮件正文，包含更多详细信息"
+    }),
+    config=config_3
+)
+print("最终的结果")
+print("\n")
+print(result.get("messages")[-1].content)
