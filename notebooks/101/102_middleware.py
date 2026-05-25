@@ -183,10 +183,18 @@ def explain_concept(concept: str) -> str:
 agent_with_middleware = create_agent(
     model=model,
     tools=[explain_concept],
-    middlewares=[dynamic_prompt_middleware],
+    middleware=[dynamic_prompt_middleware],
     context_schema=Context
 )
 print("代理已创建成功")
 print("专家用户")
 print("=" * 50)
 
+result = agent_with_middleware.invoke(
+    {
+        "messages": [HumanMessage(content="解释一下 async 编程")]
+    },
+    context={"user_role": "expert"}
+)
+print("结果为:\n")
+print(result["messages"][-1].content)
