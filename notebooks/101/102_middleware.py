@@ -1,7 +1,9 @@
 import sys
 from pathlib import Path
+from typing import TypedDict
 
 from langchain.agents import create_agent
+from langchain.agents.middleware import ModelRequest
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
@@ -144,3 +146,22 @@ result = agnet_v2.invoke(
 print("最终的结果")
 print("\n")
 print(result.get("messages")[-1].content)
+
+print("-------------------------------------------03-中间件-------------------------------------------------")
+
+
+# 创建上下文
+class Context(TypedDict):
+    user_role: str
+
+
+def dynamic_prompt_middleware(request: ModelRequest) -> str:
+    """根据用户角色调整系统提示词"""
+    user_role = request.runtime.context.get("user_role", "general")
+
+    if user_role == "expert":
+        return "你是面向专家的 AI 助手。请提供包含代码示例的详细技术性回答。"
+    elif user_role == "beginner":
+        return "你是面向初学者的 AI 助手。请用简单的方式解释概念，避免使用专业术语。"
+    else:
+        return "你是一个AI智能助手";
