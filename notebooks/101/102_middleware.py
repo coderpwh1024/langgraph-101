@@ -51,10 +51,18 @@ agent = create_agent(
     checkpointer=checkpointer,
 )
 
-config = {"configurable":{"thread_id":uuid7()}}
+config = {"configurable": {"thread_id": uuid7()}}
 
-result = agent.invoke({"messages":[HumanMessage(content="给 alice@example.com 发一封邮件，主题为明天的会议，正文为我们下午3点见。")]},config=config)
+result = agent.invoke(
+    {"messages": [HumanMessage(content="给 alice@example.com 发一封邮件，主题为明天的会议，正文为我们下午3点见。")]},
+    config=config)
 
 if "__interrupt__" in result:
     print("agent 被中断")
-    interrupt_info =""
+    interrupt_info = result["__interrupt__"][0]
+    print(f" To:{interrupt_info.value['to']}")
+    print(f" Subject:{interrupt_info.value['subject']}")
+    print(f" Body:{interrupt_info.value['body']}")
+    print(f" Message:{interrupt_info.value['message']}")
+else:
+    print("Agent 没有被中断")
