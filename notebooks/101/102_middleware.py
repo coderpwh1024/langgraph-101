@@ -166,3 +166,27 @@ def dynamic_prompt_middleware(request: ModelRequest) -> str:
         return "你是面向初学者的 AI 助手。请用简单的方式解释概念，避免使用专业术语。"
     else:
         return "你是一个AI智能助手";
+
+
+# 创建工具
+@tool
+def explain_concept(concept: str) -> str:
+    """解释一个编程概念"""
+    explanations = {
+        "async": "异步编程允许代码在不阻塞的情况下运行",
+        "recursion": "递归是指一个函数调用自身"
+    }
+    return explanations.get(concept.lower(), "未找到 Concept 的解释")
+
+
+# 创建 代理
+agent_with_middleware = create_agent(
+    model=model,
+    tools=[explain_concept],
+    middlewares=[dynamic_prompt_middleware],
+    context_schema=Context
+)
+print("代理已创建成功")
+print("专家用户")
+print("=" * 50)
+
