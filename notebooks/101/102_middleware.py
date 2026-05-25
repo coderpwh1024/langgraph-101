@@ -1,11 +1,8 @@
 import sys
-from idlelib.colorizer import prog_group_name_to_tag
 from pathlib import Path
 
-from anyio.lowlevel import checkpoint
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
-from langchain_core.messages.tool import tool_call
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import interrupt, Command
@@ -46,7 +43,7 @@ print(f"工具描述:{send_mail.description}")
 checkpointer = MemorySaver()
 agent = create_agent(
     model=model,
-    tool=[send_mail],
+    tools=[send_mail],
     system_prompt="你是一个乐于助人的邮件助手。当被要求发送邮件时，请使用 send_email 工具",
     checkpointer=checkpointer,
 )
