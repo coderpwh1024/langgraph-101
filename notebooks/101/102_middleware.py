@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import TypedDict
 
 from langchain.agents import create_agent
-from langchain.agents.middleware import ModelRequest
+from langchain.agents.middleware import ModelRequest, dynamic_prompt
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
@@ -155,6 +155,7 @@ class Context(TypedDict):
     user_role: str
 
 
+@dynamic_prompt
 def dynamic_prompt_middleware(request: ModelRequest) -> str:
     """根据用户角色调整系统提示词"""
     user_role = request.runtime.context.get("user_role", "general")
