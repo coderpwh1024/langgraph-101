@@ -8,7 +8,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.messages.tool import tool_call
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.types import interrupt
+from langgraph.types import interrupt, Command
 from langsmith import uuid7
 
 project_root = Path().resolve().parent.parent
@@ -57,6 +57,7 @@ result = agent.invoke(
     {"messages": [HumanMessage(content="给 alice@example.com 发一封邮件，主题为明天的会议，正文为我们下午3点见。")]},
     config=config)
 
+# 检查是否被中断
 if "__interrupt__" in result:
     print("agent 被中断")
     interrupt_info = result["__interrupt__"][0]
@@ -66,3 +67,25 @@ if "__interrupt__" in result:
     print(f" Message:{interrupt_info.value['message']}")
 else:
     print("Agent 没有被中断")
+
+result = agent.invoke(Command(resume={"approved": True}), config=config)
+print("最终的响应")
+print("\n")
+print(result["messages"][-1].content)
+
+config_2 = {"configurable": {"thread_id": uuid7()}}
+
+result = agent.invoke(
+    {
+        "messages": [HumanMessage(content="给 bob@example.com 发一封邮件，内容是‘你好！’")]
+    },
+    config=config_2
+)
+
+result = agent.invoke(
+    Command(resume={"approved": False}),
+    config=config_2
+)
+print("最终的响应")
+print("\n")
+print(result["messages"][-1].content)
