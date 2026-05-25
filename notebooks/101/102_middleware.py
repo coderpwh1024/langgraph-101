@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import TypedDict
 
 from langchain.agents import create_agent
-from langchain.agents.middleware import ModelRequest, dynamic_prompt
+from langchain.agents.middleware import ModelRequest, dynamic_prompt, AgentMiddleware
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
@@ -198,3 +198,11 @@ result = agent_with_middleware.invoke(
 )
 print("结果为:\n")
 print(result["messages"][-1].content)
+
+print("\n")
+print("\n")
+
+
+class RequestLoggerMiddleware(AgentMiddleware):
+    """ 记录所有模型请求以便调试 """
+
