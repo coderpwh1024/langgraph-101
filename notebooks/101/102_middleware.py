@@ -5,6 +5,7 @@ from typing import TypedDict, Any
 from jedi.inference.gradual.typing import Callable
 from langchain.agents import create_agent, AgentState
 from langchain.agents.middleware import ModelRequest, dynamic_prompt, AgentMiddleware, ModelResponse
+from langchain_core.language_models.llms import aget_prompts
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
@@ -230,7 +231,8 @@ class RequestLoggerMiddleware(AgentMiddleware):
             print(f"[AFTER MODEL] 模型请求{len(last_message.tool_calls)} tool call(s)")
         else:
             print(f"[AFTER MODEL] 模型最终返回")
-        return  None
+        return None
+
 
 # 创建代理
 agent_with_logger = create_agent(
@@ -239,3 +241,15 @@ agent_with_logger = create_agent(
     middleware=[RequestLoggerMiddleware()],
 )
 print("代理已创建成功")
+
+print("\n" + "=" * 50)
+print("Agent 已经运行")
+print("=" * 50 + "\n")
+
+result = agent_with_logger.invoke(
+    {"messages": [{"role": "user", "content": "解释递归"}]}
+)
+print("\n" + "=" * 50)
+print("最终返回:\n")
+print("=" * 50)
+print(result["messages"][-1].content)
