@@ -231,3 +231,11 @@ class RequestLoggerMiddleware(AgentMiddleware):
         else:
             print(f"[AFTER MODEL] 模型最终返回")
         return  None
+
+# 创建代理
+agent_with_logger = create_agent(
+    model=model,
+    tools=[explain_concept],
+    middleware=[RequestLoggerMiddleware()],
+)
+print("代理已创建成功")
