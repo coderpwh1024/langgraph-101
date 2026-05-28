@@ -1,11 +1,8 @@
 import sys
 from pathlib import Path
-from typing import TypedDict, Any
-
-from jedi.inference.gradual.typing import Callable
+from typing import TypedDict, Any, Callable
 from langchain.agents import create_agent, AgentState
 from langchain.agents.middleware import ModelRequest, dynamic_prompt, AgentMiddleware, ModelResponse
-from langchain_core.language_models.llms import aget_prompts
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
@@ -224,7 +221,7 @@ class RequestLoggerMiddleware(AgentMiddleware):
         print(f"有效工具:{len(request.tools) if request.tools else 0}")
         return handler(request)
 
-    def after_model(self, sate: AgentState, runtime) -> dict[str, Any] | None:
+    def after_model(self, state: AgentState, runtime) -> dict[str, Any] | None:
         """执行模型后记录日志"""
         last_message = state["messages"][-1]
         if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
