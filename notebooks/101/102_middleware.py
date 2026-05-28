@@ -1,12 +1,14 @@
 import sys
 from pathlib import Path
-from typing import TypedDict
+from typing import TypedDict, Any
 
-from langchain.agents import create_agent
-from langchain.agents.middleware import ModelRequest, dynamic_prompt, AgentMiddleware
+from jedi.inference.gradual.typing import Callable
+from langchain.agents import create_agent, AgentState
+from langchain.agents.middleware import ModelRequest, dynamic_prompt, AgentMiddleware, ModelResponse
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import state
 from langgraph.types import interrupt, Command
 from langsmith import uuid7
 
@@ -206,3 +208,26 @@ print("\n")
 class RequestLoggerMiddleware(AgentMiddleware):
     """ 记录所有模型请求以便调试 """
 
+    # 执行模型前
+    def before_model(self, state: AgentState, runtime) -> dict[str, Any] | None:
+        """执行模型前记录日志"""
+        message_count = len(state.get("messages", []))
+        print(f"正在处理第 {message_count} 条消息")
+        return None
+
+    # 执行模型后
+    def warp_model_call(self, request: ModelRequest, handler: Callable[[ModelRequest], ModelResponse]) -> ModelResponse:
+        """ 记录模型请求的详细信息，然后调用 handler"""
+        print(f"[Model REQUEST]")
+        print(f"Model:{request.model if hasattr(request, 'model') else 'default'}")
+        print(f"有效工具:{len(request.tools) if request.tools else 0}")
+        return handler(request)
+
+    def after_model(self, sate: AgentState, runtime) -> dict[str, Any] | None:
+        """执行模型后记录日志"""
+        last_message = state["messages"][-1]
+        if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+            print(f"[AFTER MODEL] 模型请求{len(last_message.tool_calls)} tool call(s)")
+        else:
+            print(f"[AFTER MODEL] 模型最终返回")
+        return  None
