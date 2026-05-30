@@ -1,5 +1,4 @@
 import sys
-from idlelib.colorizer import prog_group_name_to_tag
 from pathlib import Path
 from typing import TypedDict, Any, Callable
 from langchain.agents import create_agent, AgentState
@@ -47,7 +46,7 @@ checkpointer = MemorySaver()
 agent = create_agent(
     model=model,
     tools=[send_mail],
-    system_prompt="你是一个乐于助人的邮件助手。当被要求发送邮件时，请使用 send_email 工具",
+    system_prompt="你是一个乐于助人的邮件助手。当被要求发送邮件时，请使用 send_mail 工具",
     checkpointer=checkpointer,
 )
 
@@ -215,7 +214,7 @@ class RequestLoggerMiddleware(AgentMiddleware):
         return None
 
     # 执行模型后
-    def warp_model_call(self, request: ModelRequest, handler: Callable[[ModelRequest], ModelResponse]) -> ModelResponse:
+    def wrap_model_call(self, request: ModelRequest, handler: Callable[[ModelRequest], ModelResponse]) -> ModelResponse:
         """ 记录模型请求的详细信息，然后调用 handler"""
         print(f"[Model REQUEST]")
         print(f"Model:{request.model if hasattr(request, 'model') else 'default'}")
@@ -317,6 +316,6 @@ if "__interrupt__" in result:
     interrupt_info = result["__interrupt__"][0]
     print("\n 用户授权请求")
     print(f"{interrupt_info.value['warning']}")
-    print(f" 数据库:{interrupt_info.value["databases_name"]}")
+    print(f" 数据库:{interrupt_info.value['databases_name']}")
 
 print("\n（在实际应用中，会由人工审核后才继续执行）")
