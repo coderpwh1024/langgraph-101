@@ -250,3 +250,24 @@ print("\n" + "=" * 50)
 print("最终返回:\n")
 print("=" * 50)
 print(result["messages"][-1].content)
+
+print("----------------------------------------------04-LOOP------------------------------------------------")
+
+
+@tool
+def delete_database(database_name: str) -> str:
+    """删除数据库,这是一个危险的操作!"""
+    response = interrupt(
+        {
+            "action": "delete_databases",
+            "databases_name": database_name,
+            "warning": "这将永久删除数据库",
+            "message": "你确定吗？"
+        })
+
+    if response.get("confirmed"):
+        return f"Database '{database_name}' 已经删除（模拟)"
+    else:
+        return "操作取消"
+
+
