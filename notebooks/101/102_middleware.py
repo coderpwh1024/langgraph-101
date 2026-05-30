@@ -254,6 +254,7 @@ print(result["messages"][-1].content)
 print("----------------------------------------------04-LOOP------------------------------------------------")
 
 
+# 创建工具
 @tool
 def delete_database(database_name: str) -> str:
     """删除数据库,这是一个危险的操作!"""
@@ -270,4 +271,15 @@ def delete_database(database_name: str) -> str:
     else:
         return "操作取消"
 
+
+# 创建代理
+class SafetyMiddleware(AgentMiddleware):
+    """添加安全检查和日志记录"""
+    name = "safety_checker"
+
+    def after_model(self,state:AgentState)->dict[str,Any]|None:
+        """检查模型输出并记录日志"""
+        last_message = state["messages"][-1]
+
+        if hasattr()
 
