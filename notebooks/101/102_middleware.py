@@ -273,7 +273,7 @@ def delete_database(database_name: str) -> str:
         return "操作取消"
 
 
-# 创建代理
+# 中间件
 class SafetyMiddleware(AgentMiddleware):
     """添加安全检查和日志记录"""
     name = "safety_checker"
@@ -308,15 +308,15 @@ print("检测危险操作")
 print("=" * 50 + "\n")
 
 result = production_agent.invoke({
-    "messages": [HumanMessage(content="删除生产数据库")]
+    "messages": [HumanMessage(content="删除user")]
 },
     config=config_4
 )
 
-if "_interrupt_" in result:
-    interrupt_info = result["_interrupt_"][0]
+if "__interrupt__" in result:
+    interrupt_info = result["__interrupt__"][0]
     print("\n 用户授权请求")
-    print(f"{interrupt_info.value["warning"]}")
+    print(f"{interrupt_info.value['warning']}")
     print(f" 数据库:{interrupt_info.value["databases_name"]}")
 
 print("\n（在实际应用中，会由人工审核后才继续执行）")
