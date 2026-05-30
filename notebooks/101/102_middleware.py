@@ -277,9 +277,23 @@ class SafetyMiddleware(AgentMiddleware):
     """添加安全检查和日志记录"""
     name = "safety_checker"
 
-    def after_model(self,state:AgentState)->dict[str,Any]|None:
+    def after_model(self, state: AgentState) -> dict[str, Any] | None:
         """检查模型输出并记录日志"""
         last_message = state["messages"][-1]
 
-        if hasattr()
+        if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+            for tool_call in last_message.tool_calls:
+                if "delete" in tool_call["name"].lower():
+                    print(f"[SAFETY] 检测到危险操作")
+                    print(f" 工具:{tool_call['name']}")
+                    print(f" 参数:{tool_call['args']}")
 
+        return None
+
+# 创建代理
+production_agent = create_agent(
+    model=model,
+    tools=[delete_database],
+    middleware=[SafetyMiddleware()],
+    checkpointer=MemorySaver()
+)
