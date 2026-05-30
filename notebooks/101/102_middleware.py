@@ -307,3 +307,16 @@ print("\n" + "=" * 50)
 print("检测危险操作")
 print("=" * 50 + "\n")
 
+result = production_agent.invoke({
+    "messages": [HumanMessage(content="删除生产数据库")]
+},
+    config=config_4
+)
+
+if "_interrupt_" in result:
+    interrupt_info = result["_interrupt_"][0]
+    print("\n 用户授权请求")
+    print(f"{interrupt_info.value["warning"]}")
+    print(f" 数据库:{interrupt_info.value["databases_name"]}")
+
+print("\n（在实际应用中，会由人工审核后才继续执行）")
