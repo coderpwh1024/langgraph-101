@@ -1,4 +1,5 @@
 import sys
+from idlelib.colorizer import prog_group_name_to_tag
 from pathlib import Path
 from typing import TypedDict, Any, Callable
 from langchain.agents import create_agent, AgentState
@@ -290,6 +291,7 @@ class SafetyMiddleware(AgentMiddleware):
 
         return None
 
+
 # 创建代理
 production_agent = create_agent(
     model=model,
@@ -297,3 +299,11 @@ production_agent = create_agent(
     middleware=[SafetyMiddleware()],
     checkpointer=MemorySaver()
 )
+
+config_4 = {"configurable": {"thread_id": uuid7()}}
+
+print("代理已创建成功")
+print("\n" + "=" * 50)
+print("检测危险操作")
+print("=" * 50 + "\n")
+
