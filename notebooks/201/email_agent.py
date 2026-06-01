@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TypedDict, Literal, Annotated
 
+from langchain.agents import create_agent
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.tools import tool
 from langgraph.constants import END, START
@@ -244,5 +245,89 @@ print(format_email_markdown(email_input["subject"], email_input["author"], email
                             email_input["email_thread"]))
 
 # 输出结果
+for message in result["messages"]:
+    message.pretty_print()
+
+print("\n")
+print("-----------------------------02-创建使用预编制---------------------------------------")
+
+action_instructions = """
+< 角色 >
+你是一名顶级的行政助理，致力于帮助你的高管表现得尽可能出色。
+</ 角色 >
+
+< 工具 >
+你可以使用以下工具来帮助管理沟通和日程安排：
+
+1. write_email(to, subject, content) - 向指定收件人发送电子邮件
+2. schedule_meeting(attendees, subject, duration_minutes, preferred_day, start_time) - 安排日历会议
+3. check_calendar_availability(day) - 查询某一天的空闲时间段
+4. Done - 邮件已发送
+</ 工具 >
+
+< 说明 >
+处理邮件时，请遵循以下步骤：
+1. 仔细分析邮件内容和目的
+3. 在回复邮件时，使用 write_email 工具起草一封回复邮件
+4. 对于会议请求，使用 check_calendar_availability 工具查找空闲时间段
+5. 要安排会议，使用 schedule_meeting 工具，并为 preferred_day 参数传入一个 datetime 对象
+- 今天的日期是 {today} —— 安排会议时请据此准确处理
+6. 如果你安排了会议，则使用 write_email 工具起草一封简短的回复邮件
+7. 使用 write_email 工具之后，任务即告完成
+8. 如果你已发送邮件，则使用 Done 工具来表明任务已完成
+</ 说明 >
+
+< 背景 >
+我是 Robert，LangChain 的一名软件工程师。
+</ 背景 >
+
+< 回复偏好 >
+- 保持回复专业但友好
+- 简洁、切中要点
+- 如果安排会议，尽可能提议 2-3 个时间选项
+</ 回复偏好 >
+"""
+
+system_prompt_string = action_instructions.format(today=datetime.now().strftime("%Y-%m-%d"))
+
+email_prebuilt = create_agent(
+    model=model,
+    tools=tools,
+    name="email_prebuilt",
+    system_prompt=system_prompt_string,
+    state_schema=State,
+    checkpointer=checkpointer,
+    store=in_memory_store
+)
+
+email_prebuilt
+
+config = {"configurable": {"thread_id": uuid7()}}
+
+email_input = {
+    "to": "Robert Xu <Robert@company.com>",
+    "author": "Team Lead <teamlead@company.com>",
+    "subject": "季度规划会议",
+    "email_thread": "你好 Robert，\n\n又到了我们季度规划会议的时间了。我想在下周安排一个 90 分钟的会议，讨论我们第三季度（Q3）的路线图。\n\n你能告诉我你周一或周三的空闲时间吗？最好是在上午 10 点到下午 3 点之间。\n\n期待你对新功能优先级的意见。\n\n此致，\nTeam Lead"
+}
+
+result = email_prebuilt.invoke({
+    "email_input": email_input,
+    "messages": [HumanMessage(content=f"""
+     请回复以下邮件：
+
+  **主题**：{email_input['subject']}
+  **发件人**：{email_input['author']}
+  **收件人**：{email_input['to']}
+  
+  {email_input['email_thread']}
+     """)]}, config=config
+)
+
+print("\n")
+print("正在回复邮件：")
+print(format_email_markdown(email_input["subject"], email_input["author"], email_input["to"],
+                            email_input["email_thread"]))
+# 打印结果
 for message in result["messages"]:
     message.pretty_print()
