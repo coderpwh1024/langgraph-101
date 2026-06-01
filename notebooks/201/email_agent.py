@@ -6,11 +6,13 @@ from typing import TypedDict, Literal, Annotated
 
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.tools import tool
-from langgraph.constants import END
+from langgraph.constants import END, START
+from langgraph.graph import StateGraph
 from langgraph.graph.message import AnyMessage, add_messages
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import ToolNode
 from langgraph.store.memory import InMemoryStore
+from langsmith import uuid7
 from pydantic import BaseModel
 
 # Add project root to path
@@ -194,3 +196,48 @@ def should_continue(state: State) -> Literal["Tools", "__end__"]:
                 return END
             else:
                 return "Tools"
+
+
+# 构建 workflow
+agent_builder = StateGraph(State)
+
+# 添加节点
+agent_builder.add_node("agent", reasoning_node)
+agent_builder.add_node("tools", tool_node)
+
+# 添加边
+agent_builder.add_edge(START, "agent")
+agent_builder.add_conditional_edges(
+    "agent",
+    should_continue,
+    {
+        "Tools": "tools",
+        END: END
+    }
+)
+# 构建 agent
+agent_builder.add_edge("tools", "agent")
+agent = agent_builder.compile(checkpointer=checkpointer, store=in_memory_store)
+
+config = {"configurable": {"thread_id": uuid7()}}
+email_input = {
+    "to": "徐罗伯特 <Robert@company.com>",
+    "author": "团队负责人 <teamlead@company.com>",
+    "subject": "季度规划会议",
+    "email_thread": "你好，罗伯特：\n\n又到了我们季度规划会议的时间。我想在下周安排一场 90 分钟的会议，讨论我们 Q3 的路线图。\n\n你能告诉我你周一或周三的空闲时间吗？最好是上午 10 点到下午 3点之间。\n\n期待听到你对新功能优先级的意见。\n\n此致\n团队负责人"
+}
+
+result = agent.invoke(
+    {
+        "email_input": email_input
+    },
+    config=config
+)
+
+print("正在回复邮件：")
+print(format_email_markdown(email_input["subject"], email_input["author"], email_input["to"],
+                            email_input["email_thread"]))
+
+# 输出结果
+for message in result["messages"]:
+    message.pretty_print()
