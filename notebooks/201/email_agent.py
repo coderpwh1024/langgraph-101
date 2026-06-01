@@ -8,6 +8,7 @@ from langchain_core.tools import tool
 from langgraph.graph.message import AnyMessage, add_messages
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.store.memory import InMemoryStore
+from pydantic import BaseModel
 
 # Add project root to path
 project_root = Path().resolve().parent.parent
@@ -49,3 +50,15 @@ def check_calendar_availability(day: str) -> str:
     """查询某一天的日历可用时间"""
     return f"{day}的可用时间:上午 9:00,下午 2:00,下午 4:00"
 
+
+# 创建写邮件工具
+@tool
+def write_email(to: str, subject: str, content: str) -> str:
+    """写邮件并发送"""
+    return f"邮件发送给:{to},主题:{subject},内容:{content}"
+
+
+@tool
+class Done(BaseModel):
+    """邮件已经发送"""
+    done: bool
