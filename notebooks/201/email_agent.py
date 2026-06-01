@@ -168,10 +168,10 @@ def create_agent_prompt(state: State):
     email_markdown = format_email_markdown(email[2], email[0], email[1], email[3])
     email_request = f"请回复以下邮件：{email_markdown}"
 
-    prompt = {
-        SystemMessage(action_instructions.format(today=datetime.now().strftime("%Y-%m-%d"))),
+    prompt = [
+        SystemMessage(content=action_instructions.format(today=datetime.now().strftime("%Y-%m-%d"))),
         HumanMessage(content=email_request)
-    }
+    ]
 
     return prompt + state["messages"]
 
@@ -179,7 +179,7 @@ def create_agent_prompt(state: State):
 # 理解节点
 def reasoning_node(state: State):
     """LLM 决定是否调用工具"""
-    prompt = create_agent_prompt(state),
+    prompt = create_agent_prompt(state)
     result = llm_with_tools.invoke(prompt)
 
     return {"messages": [result]}
