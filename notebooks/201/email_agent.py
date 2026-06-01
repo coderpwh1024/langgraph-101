@@ -6,6 +6,7 @@ from typing import TypedDict, Literal, Annotated
 
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.tools import tool
+from langgraph.constants import END
 from langgraph.graph.message import AnyMessage, add_messages
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import ToolNode
@@ -69,6 +70,8 @@ class Done(BaseModel):
 # 工具集合
 tools = [schedule_meeting, check_calendar_availability, write_email, Done]
 tools_by_name = {tool.name: tool for tool in tools}
+
+llm_with_tools = model.bind_tools(tools, tool_choice="any")
 
 # 创建工具节点
 tool_node = ToolNode(tools)
@@ -169,3 +172,25 @@ def create_agent_prompt(state: State):
     }
 
     return prompt + state["messages"]
+
+
+# 理解节点
+def reasoning_node(state: State):
+    """LLM 决定是否调用工具"""
+    prompt = create_agent_prompt(state),
+    result = llm_with_tools.invoke(prompt)
+
+    return {"messages": [result]}
+
+
+# 工具节点
+def should_continue(state: State) -> Literal["Tools", "__end__"]:
+    """ 路由到工具节点；若已调用 Done 工具，则结束"""
+    messages = state["messages"]
+    last_message = messages[-1]
+    if last_message.tool_calls:
+        for tool_call in last_message.tool_calls:
+            if tool_call["name"] == "Done":
+                return END
+            else:
+                return "Tools"
