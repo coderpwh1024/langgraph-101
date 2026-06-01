@@ -26,7 +26,7 @@ checkpointer = MemorySaver()
 print("-----------------------------01-创建 email Agent---------------------------------------")
 
 
-# 创建状态
+# 创建状态(State继承 TypeDict)
 class State(TypedDict):
     email_input: dict
     classification_decision: Literal["ignore", "respond", "notify"]
@@ -62,3 +62,8 @@ def write_email(to: str, subject: str, content: str) -> str:
 class Done(BaseModel):
     """邮件已经发送"""
     done: bool
+
+
+# 工具集合
+tools = [schedule_meeting, check_calendar_availability, write_email, Done]
+tools_by_name = {tool.name: tool for tool in tools}
