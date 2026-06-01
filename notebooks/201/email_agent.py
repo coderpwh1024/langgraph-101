@@ -37,7 +37,6 @@ class State(TypedDict):
     classification_decision: Literal["ignore", "respond", "notify"]
     messages: Annotated[list[AnyMessage], add_messages]
     loaded_memory: str
-    remaining_steps: int
 
 
 # 创建会议工具
@@ -185,17 +184,21 @@ def reasoning_node(state: State):
     return {"messages": [result]}
 
 
-# 工具节点
-def should_continue(state: State) -> Literal["Tools", "__end__"]:
-    """ 路由到工具节点；若已调用 Done 工具，则结束"""
+# 条件路由：决定下一步去工具节点还是结束
+def should_continue(state: State) -> Literal["tools", "__end__"]:
+    """ 路由到工具节点；若本轮已调用 Done 工具，则结束"""
     messages = state["messages"]
     last_message = messages[-1]
-    if last_message.tool_calls:
-        for tool_call in last_message.tool_calls:
-            if tool_call["name"] == "Done":
-                return END
-            else:
-                return "Tools"
+
+    # 兜底：没有工具调用时（理论上 tool_choice="any" 不会发生）直接结束，避免返回 None
+    tool_calls = getattr(last_message, "tool_calls", None)
+    if not tool_calls:
+        return END
+
+    # 只要本轮存在 Done 调用就结束，否则才去执行工具（遍历完所有 tool_call 再判断）
+    if any(tool_call["name"] == "Done" for tool_call in tool_calls):
+        return END
+    return "tools"
 
 
 # 构建 workflow
@@ -211,7 +214,7 @@ agent_builder.add_conditional_edges(
     "agent",
     should_continue,
     {
-        "Tools": "tools",
+        "tools": "tools",
         END: END
     }
 )
@@ -219,7 +222,9 @@ agent_builder.add_conditional_edges(
 agent_builder.add_edge("tools", "agent")
 agent = agent_builder.compile(checkpointer=checkpointer, store=in_memory_store)
 
-config = {"configurable": {"thread_id": uuid7()}}
+# recursion_limit 为图的最大执行步数上限：若模型一直不调用 Done，
+# agent↔tools 循环到达上限会抛 GraphRecursionError，避免无限循环
+config = {"configurable": {"thread_id": uuid7()}, "recursion_limit": 25}
 email_input = {
     "to": "徐罗伯特 <Robert@company.com>",
     "author": "团队负责人 <teamlead@company.com>",
