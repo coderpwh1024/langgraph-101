@@ -42,3 +42,10 @@ def schedule_meeting(attendees: list[str], subject: str, duration_minutes: int, 
     date_str = preferred_day.strftime("%A,%B %d,%Y")
     return f"会议:'{subject}' 已安排在:{date_str} ,{start_time},时长:{duration_minutes}分钟,共{len(attendees)}位参会者 "
 
+
+# 创建检查日历可用时间工具
+@tool
+def check_calendar_availability(day: str) -> str:
+    """查询某一天的日历可用时间"""
+    return f"{day}的可用时间:上午 9:00,下午 2:00,下午 4:00"
+
