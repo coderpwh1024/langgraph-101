@@ -351,3 +351,66 @@ class RouterSchema(BaseModel):
 
 # 创建路由
 llm_router = model.with_structured_output(RouterSchema)
+
+
+# 创建提示词
+def create_triage_prompt(state: State):
+    loaded_memory = ""
+    if "load_memory" in state:
+        loaded_memory = state["load_memory"]
+
+    triage_instructions = f"""
+        < 角色 >
+        你的职责是根据下面的指示和背景信息，对收到的邮件进行分类处理。
+        </ 角色 >
+
+        < 背景 >
+        我是 Robert，LangChain 公司的一名软件工程师。
+        </ 背景 >
+
+        < 指示 >
+        将每封邮件归入以下三种类别之一：
+        1. IGNORE（忽略）—— 不值得回复或追踪的邮件
+        2. NOTIFY（通知）—— 值得知会、但无需回复的重要信息
+        3. RESPOND（回复）—— 需要直接回复的邮件
+        请将下面的邮件归入这些类别之一。
+        </ 指示 >
+
+        < 规则 >
+        不值得回复的邮件：
+        - 营销简报和促销邮件
+        - 垃圾邮件或可疑邮件
+        - 仅被抄送（CC）的 FYI（供参考）邮件，且其中没有直接的问题
+
+        还有一些事情虽然需要知晓，但并不需要回复邮件。对于这类情况，你应使用 `notify`（通知）响应。例如：
+        - 团队成员请病假或休假
+        - 构建系统通知或部署通知
+        - 没有行动事项的项目状态更新
+        - 重要的公司公告
+        - 包含当前项目相关信息的 FYI（供参考）邮件
+        - 人力资源部门的截止日期提醒
+        - GitHub 通知
+
+        值得回复的邮件：
+        - 团队成员提出的、需要专业知识解答的直接问题
+        - 需要确认的会议邀请
+        - 与团队项目相关的严重 bug 报告
+        - 管理层提出的、需要回应确认的请求
+        - 客户关于项目进度或功能的咨询
+        - 关于文档、代码或 API 的技术问题（尤其是关于缺失的接口或功能的问题）
+        - 与家人相关的个人提醒（妻子 / 女儿）
+        - 与自我照护相关的个人提醒（看医生预约等）
+        </ 规则 >
+
+        {loaded_memory}
+        """
+    author, to, subject, email_thread = parse_email(state["email_input"])
+    email_markdown = format_email_markdown(subject, author, to, email_thread)
+    email_request = f"请判断该如何处理下面这封邮件会话：{email_markdown}"
+    prompt = [
+        SystemMessage[triage_instructions],
+        HumanMessage(content=email_request)
+    ]
+    if "messages" in state and state["messages"]:
+        prompt = prompt + state["messages"]
+    return prompt
