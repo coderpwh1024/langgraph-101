@@ -1,6 +1,5 @@
 import os
 import sys
-from dataclasses import Field
 from datetime import datetime
 from pathlib import Path
 from typing import TypedDict, Literal, Annotated
@@ -15,7 +14,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import ToolNode
 from langgraph.store.memory import InMemoryStore
 from langsmith import uuid7
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # Add project root to path
 project_root = Path(__file__).resolve().parent.parent
