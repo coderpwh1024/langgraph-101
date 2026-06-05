@@ -328,7 +328,7 @@ print("\n")
 print("正在回复邮件：")
 print(format_email_markdown(email_input["subject"], email_input["author"], email_input["to"],
                             email_input["email_thread"]))
-å
+
 # 打印结果
 for message in result["messages"]:
     message.pretty_print()
