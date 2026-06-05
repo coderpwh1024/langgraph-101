@@ -1,5 +1,6 @@
 import os
 import sys
+from dataclasses import Field
 from datetime import datetime
 from pathlib import Path
 from typing import TypedDict, Literal, Annotated
@@ -332,3 +333,22 @@ print(format_email_markdown(email_input["subject"], email_input["author"], email
 # 打印结果
 for message in result["messages"]:
     message.pretty_print()
+
+print("-----------------------------03-Human-in-the-LOOP---------------------------------------")
+
+
+# 创建路由模式
+class RouterSchema(BaseModel):
+    """根据邮件内容分析未读邮件并进行路由分发"""
+    reasoning: str = Field(
+        description="对该分类的逐步推理过程"
+    )
+    classification: Literal["ignore", "respond", "notify"] = Field(
+        description="邮件的分类：'ignore' 表示无关邮件，"
+                    "'notify' 表示无需回复的重要信息，"
+                    "'respond' 表示需要回复的邮件",
+    )
+
+
+# 创建路由
+llm_router = model.with_structured_output(RouterSchema)
