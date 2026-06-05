@@ -353,7 +353,7 @@ class RouterSchema(BaseModel):
 llm_router = model.with_structured_output(RouterSchema)
 
 
-# 创建提示词
+# 创建提示词分类
 def create_triage_prompt(state: State):
     loaded_memory = ""
     if "load_memory" in state:
@@ -414,3 +414,16 @@ def create_triage_prompt(state: State):
     if "messages" in state and state["messages"]:
         prompt = prompt + state["messages"]
     return prompt
+
+
+# 创建分类路由
+def triage_router(state: State):
+    """
+    分析邮件内容，以决定我们应该回复、通知还是忽略。
+    """
+
+    prompt = create_triage_prompt(state)
+    result = llm_router.invoke(prompt)
+
+    classfication = result.classfication
+    return {"classification_decision": classfication}
