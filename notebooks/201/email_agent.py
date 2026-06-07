@@ -428,6 +428,15 @@ def triage_router(state: State):
     classfication = result.classfication
     return {"classification_decision": classfication}
 
+def human_input(state: State):
+    """整合人工反馈的节点"""
 
-def handle_classification(state:State):
+# 创建邮件处理
+def handle_classification(state: State):
     """如果邮件被分类为 notify（通知），则触发人工审核"""
+    if state["classification_decision"] == "notify":
+        return "human_input"
+    elif state["classification_decision"] == "respond":
+        return "email_agent"
+    else:
+        return END
