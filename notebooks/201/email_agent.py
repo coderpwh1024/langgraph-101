@@ -521,6 +521,12 @@ for message in result["messages"]:
 print("-----------------------------04-Memory---------------------------------------")
 
 
+# 创建用户记忆
 def format_user_memory(user_data):
     """ 格式化用户的音乐偏好（如果有的话）"""
-
+    profile = user_data["memory"]
+    result = "<Additional Rules>\n"
+    result += "以下是用户标注为重要的自定义规则。请优先遵循这些规则："
+    if hasattr(profile, 'response_preferences') and profile.response_preferences:
+        result += "以下是用户标注为重要的自定义规则。请优先遵循这些规则："
+    result += "\n </Additional Rules>"
