@@ -409,7 +409,7 @@ def create_triage_prompt(state: State):
     email_markdown = format_email_markdown(subject, author, to, email_thread)
     email_request = f"请判断该如何处理下面这封邮件会话：{email_markdown}"
     prompt = [
-        SystemMessage[triage_instructions],
+        SystemMessage(triage_instructions),
         HumanMessage(content=email_request)
     ]
     if "messages" in state and state["messages"]:
@@ -426,8 +426,8 @@ def triage_router(state: State):
     prompt = create_triage_prompt(state)
     result = llm_router.invoke(prompt)
 
-    classfication = result.classfication
-    return {"classification_decision": classfication}
+    classification = result.classification
+    return {"classification_decision": classification}
 
 
 # 人工输入
@@ -468,7 +468,7 @@ email_hitl_workflow = StateGraph(State)
 email_hitl_workflow.add_node("triage", triage_router)
 email_hitl_workflow.add_node("human_input", human_input)
 email_hitl_workflow.add_node("email_agent", agent)
-email_hitl_workflow.add_edge("START", "triage")
+email_hitl_workflow.add_edge(START, "triage")
 
 # 添加邮件处理
 email_hitl_workflow.add_conditional_edges(
