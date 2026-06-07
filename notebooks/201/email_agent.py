@@ -517,3 +517,10 @@ result = email_hitl.invoke(Command(resume="y"), config=config)
 
 for message in result["messages"]:
     message.pretty_print()
+
+print("-----------------------------04-Memory---------------------------------------")
+
+
+def format_user_memory(user_data):
+    """ 格式化用户的音乐偏好（如果有的话）"""
+
