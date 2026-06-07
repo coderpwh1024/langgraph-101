@@ -13,6 +13,7 @@ from langgraph.graph.message import AnyMessage, add_messages
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import ToolNode
 from langgraph.store.memory import InMemoryStore
+from langgraph.types import interrupt
 from langsmith import uuid7
 from pydantic import BaseModel, Field
 
@@ -428,8 +429,20 @@ def triage_router(state: State):
     classfication = result.classfication
     return {"classification_decision": classfication}
 
+
+# 人工输入
 def human_input(state: State):
     """整合人工反馈的节点"""
+    author, to, subject, email_thread = parse_email(state[email_input])
+    email_markdown = format_email_markdown(subject, author, to, email_thread)
+    user_input = interrupt(f"请判断下面这封邮件是否值得回复 (Y/n): {email_markdown}")
+
+    log = " 邮件最初被标记为 notify(通知),但用户将其标记为需要回复的情况"
+    if str(user_input).lower() == "y":
+        return {"classification_decision": "respond", "messages": [HumanMessage(content=log)]}
+    else:
+        return {"classification_decision": "ignore"}
+
 
 # 创建邮件处理
 def handle_classification(state: State):
