@@ -433,7 +433,7 @@ def triage_router(state: State):
 # 人工输入
 def human_input(state: State):
     """整合人工反馈的节点"""
-    author, to, subject, email_thread = parse_email(state[email_input])
+    author, to, subject, email_thread = parse_email(state["email_input"])
     email_markdown = format_email_markdown(subject, author, to, email_thread)
     user_input = interrupt(f"请判断下面这封邮件是否值得回复 (Y/n): {email_markdown}")
 
