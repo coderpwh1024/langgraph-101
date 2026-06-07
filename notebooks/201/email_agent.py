@@ -427,3 +427,7 @@ def triage_router(state: State):
 
     classfication = result.classfication
     return {"classification_decision": classfication}
+
+
+def handle_classification(state:State):
+    """如果邮件被分类为 notify（通知），则触发人工审核"""
