@@ -13,7 +13,7 @@ from langgraph.graph.message import AnyMessage, add_messages
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import ToolNode
 from langgraph.store.memory import InMemoryStore
-from langgraph.types import interrupt
+from langgraph.types import interrupt, Command
 from langsmith import uuid7
 from pydantic import BaseModel, Field
 
@@ -453,3 +453,67 @@ def handle_classification(state: State):
         return "email_agent"
     else:
         return END
+
+
+# 人工处理
+def handle_human_input(state: State):
+    """处理人工输入"""
+    if state["classification_decision"] == "respond":
+        return "email_agent"
+    else:
+        return END
+
+
+email_hitl_workflow = StateGraph(State)
+email_hitl_workflow.add_node("triage", triage_router)
+email_hitl_workflow.add_node("human_input", human_input)
+email_hitl_workflow.add_node("email_agent", agent)
+email_hitl_workflow.add_edge("START", "triage")
+
+# 添加邮件处理
+email_hitl_workflow.add_conditional_edges(
+    "triage",
+    handle_classification,
+    {
+        "human_input": "human_input",
+        "email_agent": "email_agent",
+        END: END
+    })
+
+# 添加人工处理
+email_hitl_workflow.add_conditional_edges("human_input",
+                                          handle_human_input, {
+                                              "email_agent": "email_agent",
+                                              END: END
+                                          })
+
+# 编译
+email_hitl = email_hitl_workflow.compile(checkpointer=checkpointer, store=in_memory_store)
+email_hitl
+
+config = {"configurable": {"thread_id": uuid7()}}
+
+email_input = {
+    "to": "Robert Xu <Robert@company.com>",
+    "author": "System Admin <sysadmin@company.com>",
+    "subject": "计划维护 - 数据库停机",
+    "email_thread": "你好 Robert,\n\n特此提醒,我们今晚将对生产数据库进行计划维护,时间为美国东部时间凌晨 2 点至 4 点。在此期间,所有数据库服务将不可用。\n\n请据此安排好你的工作,并确保该时间段内没有安排任何关键的部署。\n\n谢谢,\n系统管理员团队"
+}
+
+# 运行
+result = email_hitl.invoke({"email_input": email_input}, config=config)
+
+# 输出结果
+if "__interrupt__" in result:
+    print("分类决策:", result["classification_decision"])
+    print("-----------需要人工协助---------------------")
+    print(result["__interrupt__"][0].value)
+else:
+    for message in result["messages"]:
+        message.pretty_print()
+
+# 恢复
+result = email_hitl.invoke(Command(resume="y"), config=config)
+
+for message in result["messages"]:
+    message.pretty_print()
