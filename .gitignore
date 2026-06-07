@@ -1,2 +1,5 @@
 # Claude Code 运行时文件
 .claude/
+
+# JetBrains IDE 配置文件
+.idea/
