@@ -597,14 +597,23 @@ def create_memory(state: State, store: BaseStore):
     conversation = HumanMessage(content=initial_message) + state["messages"]
 
     # 创建系统消息
-    formatted_system_message = SystemMessage(content=create_memory_prompt.format(conversation=conversation,memory_profile=formatted_memory))
+    formatted_system_message = SystemMessage(
+        content=create_memory_prompt.format(conversation=conversation, memory_profile=formatted_memory))
 
-    update_memory=model.with_structured_output(UserProfile).invoke([
-         formatted_system_message,
+    update_memory = model.with_structured_output(UserProfile).invoke([
+        formatted_system_message,
         HumanMessage(content="请分析这段对话并更新记忆档案。")])
 
-    key ="user_memory"
-    store.put(namespace,key,{"memory":update_memory})
+    key = "user_memory"
+    store.put(namespace, key, {"memory": update_memory})
 
 
-
+#  创建新的记忆
+def should_create_memory(state: State):
+    """ 仅当用户已决定回复某封邮件时，才创建新的记忆 """
+    messages = state["messages"]
+    correction = "邮件最初被标记为「仅通知」，但用户将其标记为需要回复的场景。"
+    for message in messages:
+        if message.type == "human" and correction in message.content:
+            return "create_memory"
+    return END
