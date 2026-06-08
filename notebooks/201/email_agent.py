@@ -532,6 +532,7 @@ def format_user_memory(user_data):
         result += "以下是用户标注为重要的自定义规则。请优先遵循这些规则："
     result += "\n </Additional Rules>"
 
+
 # 创建加载记忆
 def load_memory(state: State, store: BaseStore):
     """加载用户的音乐偏好（如果存在）"""
@@ -542,10 +543,11 @@ def load_memory(state: State, store: BaseStore):
         formatted_memory = format_user_memory(existing_memory.value)
     return {"load_memory": formatted_memory}
 
+
 #  用户配置
 class UserProfile(BaseModel):
-    response_preferences:List[str]=Field(
-        description ="一组规则,用于描述用户希望回复哪些类型的邮件"
+    response_preferences: List[str] = Field(
+        description="一组规则,用于描述用户希望回复哪些类型的邮件"
     )
 
 
@@ -581,3 +583,28 @@ create_memory_prompt = """你是一位专业分析师，正在观察一位客户
 
  提醒：作答前请深呼吸，仔细思考。
  """
+
+
+# 创建记忆
+def create_memory(state: State, store: BaseStore):
+    namespace = ("memory_profile", "Robert")
+    formatted_memory = state["loaded_memory"]
+
+    email_input = state["email_input"]
+    formatted_email = format_email_markdown(email_input["subject"], email_input["auther"], email_input["to"],
+                                            email_input["email_thread"])
+    initial_message = f"已收到初始邮件：{formatted_email}\n"
+    conversation = HumanMessage(content=initial_message) + state["messages"]
+
+    # 创建系统消息
+    formatted_system_message = SystemMessage(content=create_memory_prompt.format(conversation=conversation,memory_profile=formatted_memory))
+
+    update_memory=model.with_structured_output(UserProfile).invoke([
+         formatted_system_message,
+        HumanMessage(content="请分析这段对话并更新记忆档案。")])
+
+    key ="user_memory"
+    store.put(namespace,key,{"memory":update_memory})
+
+
+
