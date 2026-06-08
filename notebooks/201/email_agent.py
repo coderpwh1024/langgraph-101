@@ -357,8 +357,8 @@ llm_router = model.with_structured_output(RouterSchema)
 # 创建提示词分类
 def create_triage_prompt(state: State):
     loaded_memory = ""
-    if "load_memory" in state:
-        loaded_memory = state["load_memory"]
+    if "loaded_memory" in state:
+        loaded_memory = state["loaded_memory"]
 
     triage_instructions = f"""
         < 角色 >
@@ -430,6 +430,11 @@ def triage_router(state: State):
     return {"classification_decision": classification}
 
 
+# 邮件最初被标记为 notify，但用户将其改为需要回复时写入的标记。
+# human_input 写入与 should_create_memory 匹配的必须是同一个常量，否则记忆永远不会创建。
+NOTIFY_TO_RESPOND_LOG = "邮件最初被标记为 notify(通知),但用户将其标记为需要回复的情况"
+
+
 # 人工输入
 def human_input(state: State):
     """整合人工反馈的节点"""
@@ -437,7 +442,7 @@ def human_input(state: State):
     email_markdown = format_email_markdown(subject, author, to, email_thread)
     user_input = interrupt(f"请判断下面这封邮件是否值得回复 (Y/n): {email_markdown}")
 
-    log = " 邮件最初被标记为 notify(通知),但用户将其标记为需要回复的情况"
+    log = NOTIFY_TO_RESPOND_LOG
     if str(user_input).lower() == "y":
         return {"classification_decision": "respond", "messages": [HumanMessage(content=log)]}
     else:
@@ -526,10 +531,11 @@ def format_user_memory(user_data):
     """ 格式化用户的音乐偏好（如果有的话）"""
     profile = user_data["memory"]
     result = "<Additional Rules>\n"
-    result += "以下是用户标注为重要的自定义规则。请优先遵循这些规则："
+    result += "以下是用户标注为重要的自定义规则。请优先遵循这些规则：\n"
     if hasattr(profile, 'response_preferences') and profile.response_preferences:
-        result += "以下是用户标注为重要的自定义规则。请优先遵循这些规则："
-    result += "\n </Additional Rules>"
+        for preference in profile.response_preferences:
+            result += f"- {preference}\n"
+    result += "</Additional Rules>"
     return result.strip()
 
 
@@ -594,7 +600,7 @@ def create_memory(state: State, store:BaseStore):
     formatted_email = format_email_markdown(email_input["subject"], email_input["author"], email_input["to"],
                                             email_input["email_thread"])
     initial_message = f"已收到初始邮件：{formatted_email}\n"
-    conversation = HumanMessage(content=initial_message) + state["messages"]
+    conversation = [HumanMessage(content=initial_message)] + state["messages"]
 
     # 创建系统消息
     formatted_system_message = SystemMessage(
@@ -612,7 +618,7 @@ def create_memory(state: State, store:BaseStore):
 def should_create_memory(state: State):
     """ 仅当用户已决定回复某封邮件时，才创建新的记忆 """
     messages = state["messages"]
-    correction = "邮件最初被标记为「仅通知」，但用户将其标记为需要回复的场景。"
+    correction = NOTIFY_TO_RESPOND_LOG
     for message in messages:
         if message.type == "human" and correction in message.content:
             return "create_memory"
