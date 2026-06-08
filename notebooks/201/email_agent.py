@@ -6,6 +6,7 @@ from typing import TypedDict, Literal, Annotated
 
 from langchain.agents import create_agent
 from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.stores import BaseStore
 from langchain_core.tools import tool
 from langgraph.constants import END, START
 from langgraph.graph import StateGraph
@@ -530,3 +531,13 @@ def format_user_memory(user_data):
     if hasattr(profile, 'response_preferences') and profile.response_preferences:
         result += "以下是用户标注为重要的自定义规则。请优先遵循这些规则："
     result += "\n </Additional Rules>"
+
+# 创建加载记忆
+def load_memory(state: State, store: BaseStore):
+    """加载用户的音乐偏好（如果存在）"""
+    namespace = ("memory_profile", "Robert")
+    existing_memory = store.get(namespace, "user_memory")
+    formatted_memory = ""
+    if existing_memory and existing_memory.value:
+        formatted_memory = format_user_memory(existing_memory.value)
+    return {"load_memory": formatted_memory}
