@@ -3,10 +3,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import TypedDict, Literal, Annotated, List
-
+from langgraph.store.base import BaseStore
 from langchain.agents import create_agent
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_core.stores import BaseStore
 from langchain_core.tools import tool
 from langgraph.constants import END, START
 from langgraph.graph import StateGraph
@@ -535,7 +534,7 @@ def format_user_memory(user_data):
 
 
 # 创建加载记忆
-def load_memory(state: State, store: BaseStore):
+def load_memory(state: State, store:BaseStore):
     """加载用户的音乐偏好（如果存在）"""
     namespace = ("memory_profile", "Robert")
     existing_memory = store.get(namespace, "user_memory")
@@ -587,7 +586,7 @@ create_memory_prompt = """你是一位专业分析师，正在观察一位客户
 
 
 # 创建记忆
-def create_memory(state: State, store: BaseStore):
+def create_memory(state: State, store:BaseStore):
     namespace = ("memory_profile", "Robert")
     formatted_memory = state["loaded_memory"]
 
@@ -682,6 +681,7 @@ for message in result["messages"]:
 user = "Robert"
 namespace = ("memory_profile", user)
 memory = in_memory_store.get(namespace, "user_memory").value
+
 
 saved_preferences = memory.get("memory").response_preferences
 print(f"用户 {user} 的偏好设置：{saved_preferences}")
