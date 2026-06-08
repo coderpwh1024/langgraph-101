@@ -531,6 +531,7 @@ def format_user_memory(user_data):
     if hasattr(profile, 'response_preferences') and profile.response_preferences:
         result += "以下是用户标注为重要的自定义规则。请优先遵循这些规则："
     result += "\n </Additional Rules>"
+    return result.strip()
 
 
 # 创建加载记忆
@@ -541,7 +542,7 @@ def load_memory(state: State, store: BaseStore):
     formatted_memory = ""
     if existing_memory and existing_memory.value:
         formatted_memory = format_user_memory(existing_memory.value)
-    return {"load_memory": formatted_memory}
+    return {"loaded_memory": formatted_memory}
 
 
 #  用户配置
@@ -591,7 +592,7 @@ def create_memory(state: State, store: BaseStore):
     formatted_memory = state["loaded_memory"]
 
     email_input = state["email_input"]
-    formatted_email = format_email_markdown(email_input["subject"], email_input["auther"], email_input["to"],
+    formatted_email = format_email_markdown(email_input["subject"], email_input["author"], email_input["to"],
                                             email_input["email_thread"])
     initial_message = f"已收到初始邮件：{formatted_email}\n"
     conversation = HumanMessage(content=initial_message) + state["messages"]
@@ -629,7 +630,7 @@ email_memory_workflow.add_node("load_memory", load_memory)
 email_memory_workflow.add_node("create_memory", create_memory)
 
 # 添加边
-email_memory_workflow.add_edge(START, load_memory)
+email_memory_workflow.add_edge(START, "load_memory")
 email_memory_workflow.add_edge("load_memory", "triage")
 
 # 添加条件边
@@ -643,11 +644,11 @@ email_memory_workflow.add_conditional_edges("triage", handle_classification,
 # 添加条件边
 email_memory_workflow.add_conditional_edges("human_input", handle_human_input,
                                             {
-                                                "email_input": "email_input",
+                                                "email_agent": "email_agent",
                                                 END: END
                                             }, )
 # 添加条件边
-email_memory_workflow.add_conditional_edges("email_input", should_create_memory, {
+email_memory_workflow.add_conditional_edges("email_agent", should_create_memory, {
     "create_memory": "create_memory",
     END: END
 })
