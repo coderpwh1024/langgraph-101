@@ -617,3 +617,70 @@ def should_create_memory(state: State):
         if message.type == "human" and correction in message.content:
             return "create_memory"
     return END
+
+
+# 创建工作流
+email_memory_workflow = StateGraph(State)
+# 添加节点
+email_memory_workflow.add_node("triage", triage_router)
+email_memory_workflow.add_node("human_input", human_input)
+email_memory_workflow.add_node("email_agent", agent)
+email_memory_workflow.add_node("load_memory", load_memory)
+email_memory_workflow.add_node("create_memory", create_memory)
+
+# 添加边
+email_memory_workflow.add_edge(START, load_memory)
+email_memory_workflow.add_edge("load_memory", "triage")
+
+# 添加条件边
+email_memory_workflow.add_conditional_edges("triage", handle_classification,
+                                            {
+                                                "human_input": "human_input",
+                                                "email_agent": "email_agent",
+                                                END: END,
+                                            },
+                                            )
+# 添加条件边
+email_memory_workflow.add_conditional_edges("human_input", handle_human_input,
+                                            {
+                                                "email_input": "email_input",
+                                                END: END
+                                            }, )
+# 添加条件边
+email_memory_workflow.add_conditional_edges("email_input", should_create_memory, {
+    "create_memory": "create_memory",
+    END: END
+})
+
+# 编译
+email_agent_memory = email_memory_workflow.compile(checkpointer=checkpointer, store=in_memory_store)
+email_agent_memory
+
+# 配置
+config = {"configurable": {"thread_id": uuid7(), "recursion_limit": 100}}
+
+email_input = {
+    "to": "Robert Xu <Robert@company.com>",
+    "author": "System Admin <sysadmin@company.com>",
+    "subject": "计划内维护 - 数据库停机",
+    "email_thread": "你好 Robert：\n\n特此提醒，我们将于今晚美东时间凌晨 2 点至 4点对生产数据库进行计划内维护。在此期间，所有数据库服务都将不可用。\n\n请据此安排好你的工作，并确保该时段内没有计划任何关键部署。\n\n谢谢，\n系统管理员团队"
+}
+
+result = email_agent_memory.invoke({"email_input": email_input}, config=config)
+result = email_agent_memory.invoke(Command(resume="y"), config=config)
+
+print("正在回复邮件：")
+print("\n")
+print(format_email_markdown(email_input["subject"], email_input["author"], email_input["to"],
+                            email_input["email_thread"]))
+print("\n")
+
+for message in result["messages"]:
+    print(message.content)
+
+user = "Robert"
+namespace = ("memory_profile", user)
+memory = in_memory_store.get(namespace, "user_memory").value
+
+saved_preferences = memory.get("memory").response_preferences
+print(f"用户 {user} 的偏好设置：{saved_preferences}")
