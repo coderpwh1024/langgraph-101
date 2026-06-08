@@ -2,7 +2,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import TypedDict, Literal, Annotated
+from typing import TypedDict, Literal, Annotated, List
 
 from langchain.agents import create_agent
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -541,3 +541,9 @@ def load_memory(state: State, store: BaseStore):
     if existing_memory and existing_memory.value:
         formatted_memory = format_user_memory(existing_memory.value)
     return {"load_memory": formatted_memory}
+
+#  用户配置
+class UserProfile(BaseModel):
+    response_preferences:List[str]=Field(
+        description ="一组规则,用于描述用户希望回复哪些类型的邮件"
+    )
