@@ -7,6 +7,7 @@ from typing import TypedDict, Annotated, List
 import requests
 from langchain_core.messages import AnyMessage
 from langchain_core.stores import InMemoryStore
+from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import add_messages
 from sqlalchemy import create_engine, StaticPool
@@ -61,3 +62,29 @@ class State(InputState):
     customer_id: int
     loaded_memory: str
     remaining_steps: int
+
+
+# 获取专辑
+@tool
+def get_albums_by_artist(artist: str):
+    """获取某位艺术家的专辑"""
+    return db.run(
+        f"""select Album.Title,Artist.Name FROM  Album JOIN Artist ON Album.ArtistId=Artist.ArtistId WHERE Artist.Name LIKE'%{artist}%' """,
+        include_columns=True
+    )
+
+
+# 获取歌曲
+@tool
+def get_tracks_by_artist(artist: str):
+    """按艺术家（或相似艺术家）获取歌曲"""
+    return db.run(
+        f"""
+            SELECT Track.Name as SongName, Artist.Name as ArtistName 
+            FROM Album 
+            LEFT JOIN Artist ON Album.ArtistId = Artist.ArtistId 
+            LEFT JOIN Track ON Track.AlbumId = Album.AlbumId 
+            WHERE Artist.Name LIKE '%{artist}%';
+            """,
+        include_columns=True
+    )
