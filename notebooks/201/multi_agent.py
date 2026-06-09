@@ -31,7 +31,7 @@ def get_engine_for_chinook_db():
     response = requests.get(url)
     sql_script = response.text
 
-    connection = sqlite3.connect(":memory", check_same_thread=False)
+    connection = sqlite3.connect(":memory:", check_same_thread=False)
     connection.executescript(sql_script)
 
     return create_engine(
@@ -234,4 +234,4 @@ config = {"configurable": {"thread_id": uuid7()}}
 result = music_catalog_subagent.invoke({"messages":[HumanMessage(content=question)]},config= config)
 
 for message in result["messages"]:
-    message.pettry_print()
+    message.pretty_print()
