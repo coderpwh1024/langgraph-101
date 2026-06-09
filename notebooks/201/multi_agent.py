@@ -1,3 +1,4 @@
+import ast
 import sys
 from pathlib import Path
 
@@ -88,3 +89,39 @@ def get_tracks_by_artist(artist: str):
             """,
         include_columns=True
     )
+
+
+# 获取歌曲
+@tool
+def get_song_by_genre(genre: str):
+    """
+    从数据库中获取匹配特定流派的歌曲。
+    参数:
+      genre (str): 要获取的歌曲流派。
+    返回:
+      list[dict]: 匹配指定流派的歌曲列表。
+    """
+    # 查询 genre_id
+    genre_id_query = f"SELECT GenreId From Genre WHERE NAME LIKE '%{genre}%'"
+    genre_ids = db.run(genre_id_query)
+    if not genre_ids:
+        return f"未找到该流派的歌曲：{genre}"
+    genre_ids = ast.literal_eval(genre_ids)
+    genre_id_list = ", ".join(str(gid[0]) for gid in genre_ids)
+
+    songs_query = f"""
+           SELECT Track.Name as SongName, Artist.Name as ArtistName
+           FROM Track
+           LEFT JOIN Album ON Track.AlbumId = Album.AlbumId
+           LEFT JOIN Artist ON Album.ArtistId = Artist.ArtistId
+           WHERE Track.GenreId IN ({genre_id_list})
+           GROUP BY Artist.Name
+           LIMIT 8;
+       """
+    songs = db.run(songs_query,include_columns=True)
+    if not songs:
+        return f"未找到该流派的歌曲：{genre}"
+    formatted_songs = ast.literal_eval(songs)
+    return [
+        {"Song":song["SongName"],"Artist":song["ArtistName"]}  for song in formatted_songs
+    ]
