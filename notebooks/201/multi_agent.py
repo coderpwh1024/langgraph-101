@@ -6,11 +6,12 @@ import sqlite3
 from typing import TypedDict, Annotated, List
 
 import requests
-from langchain_core.messages import AnyMessage
+from langchain_core.messages import AnyMessage, SystemMessage
 from langchain_core.stores import InMemoryStore
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import add_messages
+from langgraph.prebuilt import ToolNode
 from sqlalchemy import create_engine, StaticPool
 from langchain_community.utilities.sql_database import SQLDatabase
 
@@ -137,3 +138,57 @@ def check_for_songs(song_title):
 # 工具集合
 music_tools = [get_albums_by_artist, get_tracks_by_artist, get_song_by_genre, check_for_songs]
 llm_with_music_tools = model.bind_tools(music_tools)
+
+# 工具节点
+music_tool_node = ToolNode(music_tools)
+
+
+# 音乐助理提示词
+def generate_music_assistant_prompt(memory: str = "None") -> str:
+    return f"""
+    <important_background>
+    你是助理团队的一员，你的具体职责是帮助客户在我们的数字目录中发现和了解音乐。
+    如果你找不到与某位艺术家相关的播放列表、歌曲或专辑，这没有关系。
+    只需回复目录中没有与该艺术家相关的任何播放列表、歌曲或专辑即可。
+    你还掌握了已保存的用户偏好信息，可据此为你的回复量身定制。
+    重要提示：你与客户的交互是通过自动化系统完成的。你并非直接与客户对话，因此请避免闲聊或追问，专注于纯粹地用必要信息来响应请求。
+
+    <core_responsibilities>
+    - 搜索并提供关于歌曲、专辑、艺术家和播放列表的准确信息
+    - 根据客户兴趣提供相关推荐
+    - 处理音乐相关查询时注重细节
+    - 帮助客户发现他们可能喜欢的新音乐
+    - 仅当遇到与音乐目录相关的问题时才会路由到你这里；忽略其他问题。
+    </core_responsibilities>
+
+    <guidelines>
+    1. 在断定某项内容不存在之前，务必进行彻底的搜索
+    2. 如果找不到精确匹配，请尝试：
+       - 检查其他拼写方式
+       - 查找相似的艺术家名称
+       - 按部分匹配进行搜索
+       - 检查不同的版本/混音版
+    3. 提供歌曲列表时：
+       - 每首歌曲都附上艺术家名称
+       - 在相关时注明所属专辑
+       - 注明它是否属于任何播放列表
+       - 标明是否存在多个版本
+    </guidelines>
+
+    下面提供了附加上下文：
+
+    已保存的用户偏好：{memory}
+
+    消息历史记录也一并附上。
+    """
+
+
+def music_assistant(state: State):
+    memory = "None"
+    if "loaded_memory" in state:
+        memory = state["loaded_memory"]
+    # 提示词中加载记忆
+    music_assistant_prompt = generate_music_assistant_prompt(memory)
+    # 请求大模型
+    response = llm_with_music_tools.invoke([SystemMessage(music_assistant_prompt)] + state["messages"])
+    return {"messages": [response]}
