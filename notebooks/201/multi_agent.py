@@ -17,11 +17,13 @@ from langsmith import uuid7
 from sqlalchemy import create_engine, StaticPool
 from langchain_community.utilities.sql_database import SQLDatabase
 
-project_root = Path().resolve().parent.parent
+project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from utils.models import model
+
+
 
 
 # 获取数据库连接
