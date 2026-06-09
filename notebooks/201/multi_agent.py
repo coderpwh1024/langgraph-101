@@ -6,12 +6,14 @@ import sqlite3
 from typing import TypedDict, Annotated, List
 
 import requests
-from langchain_core.messages import AnyMessage, SystemMessage
+from langchain_core.messages import AnyMessage, SystemMessage, HumanMessage
 from langchain_core.stores import InMemoryStore
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import add_messages
+from langgraph.constants import START, END
+from langgraph.graph import add_messages, StateGraph
 from langgraph.prebuilt import ToolNode
+from langsmith import uuid7
 from sqlalchemy import create_engine, StaticPool
 from langchain_community.utilities.sql_database import SQLDatabase
 
@@ -193,3 +195,43 @@ def music_assistant(state: State):
     # 请求大模型
     response = llm_with_music_tools.invoke([SystemMessage(music_assistant_prompt)] + state["messages"])
     return {"messages": [response]}
+
+
+# edge 临界值
+def should_continue(state: State):
+    messages = state["messages"]
+    last_message = messages[-1]
+    if not last_message.tool_calls:
+        return "end"
+    else:
+        return "continue"
+
+# 构建音乐流程
+music_workflow = StateGraph(State)
+
+# 添加node
+music_workflow.add_node("music_assistant", music_assistant)
+music_workflow.add_node("music_tool_node", music_tool_node)
+
+# 添加 edge
+music_workflow.add_edge(START, "music_assistant")
+
+#  添加条件 edge
+music_workflow.add_conditional_edges("music_assistant",should_continue,
+                                     {
+                                         "continue":"music_tool_node",
+                                         "end":END
+                                     })
+
+music_workflow.add_edge("music_tool_node", "music_assistant")
+
+# 编译
+music_catalog_subagent = music_workflow.compile(name="music_catalog_subagent",checkpointer=checkpointer,store=in_memory_store)
+
+question = "我喜欢滚石乐队(The Rolling Stones)。你能推荐一些他们的歌,或者其他我可能会喜欢的艺术家的歌吗?"
+config = {"configurable": {"thread_id": uuid7()}}
+
+result = music_catalog_subagent.invoke({"messages":[HumanMessage(content=question)]},config= config)
+
+for message in result["messages"]:
+    message.pettry_print()
