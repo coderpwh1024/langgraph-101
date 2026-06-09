@@ -118,10 +118,22 @@ def get_song_by_genre(genre: str):
            GROUP BY Artist.Name
            LIMIT 8;
        """
-    songs = db.run(songs_query,include_columns=True)
+    songs = db.run(songs_query, include_columns=True)
     if not songs:
         return f"未找到该流派的歌曲：{genre}"
     formatted_songs = ast.literal_eval(songs)
     return [
-        {"Song":song["SongName"],"Artist":song["ArtistName"]}  for song in formatted_songs
+        {"Song": song["SongName"], "Artist": song["ArtistName"]} for song in formatted_songs
     ]
+
+
+# 检查 歌曲
+@tool
+def check_for_songs(song_title):
+    """根据歌曲名称检查歌曲是否存在"""
+    return db.run(f""" SELECT * FROM Track WHERE Name LIKE '%{song_title}%'""", include_columns=True)
+
+
+# 工具集合
+music_tools = [get_albums_by_artist, get_tracks_by_artist, get_song_by_genre, check_for_songs]
+llm_with_music_tools = model.bind_tools(music_tools)
