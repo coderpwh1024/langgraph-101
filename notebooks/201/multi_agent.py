@@ -2,9 +2,13 @@ import sys
 from pathlib import Path
 
 import sqlite3
+from typing import TypedDict, Annotated, List
+
 import requests
+from langchain_core.messages import AnyMessage
 from langchain_core.stores import InMemoryStore
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import add_messages
 from sqlalchemy import create_engine, StaticPool
 from langchain_community.utilities.sql_database import SQLDatabase
 
@@ -43,3 +47,17 @@ in_memory_store = InMemoryStore()
 # 初始化 checkpointer
 checkpointer = MemorySaver()
 
+print(
+    "-------------------------------------------01-构建-子智能体--------------------------------------------------------")
+
+
+# 输入
+class InputState(TypedDict):
+    messages: Annotated[List[AnyMessage], add_messages]
+
+
+# 状态
+class State(InputState):
+    customer_id: int
+    loaded_memory: str
+    remaining_steps: int
