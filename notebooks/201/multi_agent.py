@@ -15,6 +15,7 @@ from langgraph.constants import START, END
 from langgraph.graph import add_messages, StateGraph
 from langgraph.prebuilt import ToolNode, ToolRuntime
 from langsmith import uuid7
+from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, StaticPool
 from langchain_community.utilities.sql_database import SQLDatabase
 
@@ -435,17 +436,15 @@ supervisor = create_agent(
     store=in_memory_store
 )
 
-
 # question = "我最近一次购买花了多少钱?另外你们有哪些滚石乐队的专辑?";
 
-question="我最喜欢的水果是什么？";
+question = "我最喜欢的水果是什么？";
 config = {"configurable": {"thread_id": uuid7()}}
-
 
 result = supervisor.invoke({
     "messages": [HumanMessage(content=question)],
     "customer_id": 1
-},config=config)
+}, config=config)
 
 print("\n")
 print("\n")
@@ -454,3 +453,28 @@ for message in result["messages"]:
     message.pretty_print()
 
 print("\n")
+print("\n")
+print("\n")
+
+print(
+    "-------------------------------------------03-添加用户验证-LOOP---------------------------------------------------------")
+
+
+# 用户验证环节的结构化输出模式：
+# 配合 with_structured_output 使用，让 LLM 从对话历史中提取客户手机号，
+# 后续节点用提取到的号码去数据库匹配 customer_id，完成账户验证。
+# 注意：docstring 和 Field 的 description 都会作为 schema 说明发送给 LLM，
+# 写得越具体，模型提取得越准确。
+class PhoneNumberExtraction(BaseModel):
+    """从客户消息历史中提取手机号，用于账户身份验证。
+
+    如果客户尚未提供手机号，phone_number 应返回空字符串。
+    """
+    phone_number: str = Field(description="客户的手机号，纯数字；未提供时为空字符串")
+
+
+structured_llm = model.with_structured_output(schema=PhoneNumberExtraction)
+
+# 结构化返回，提示词部分
+structured_system_prompt = """你是一名客服代表,负责提取客户的电话号码。\n 只从消息历史记录中提取客户的账户信息。如果他们尚未提供该信息,则为该字段返回一个空字符串"""
+
