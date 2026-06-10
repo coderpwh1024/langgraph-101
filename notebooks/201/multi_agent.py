@@ -413,10 +413,42 @@ def call_invoice_information_subagent(runtime: ToolRuntime, query: str):
     return subagent_response
 
 
-@tool(name="music_catalog_subagent",description="一个能够协助处理所有音乐相关查询的智能体。该智能体可以访问用户已保存的音乐偏好。它还能从数据库中检索数字音乐商店的音乐目录信息(专辑、曲目、歌曲等)。")
+# 调用音乐子智能体
+@tool(name="music_catalog_subagent",
+      description="一个能够协助处理所有音乐相关查询的智能体。该智能体可以访问用户已保存的音乐偏好。它还能从数据库中检索数字音乐商店的音乐目录信息(专辑、曲目、歌曲等)。")
 def call_music_catalog_subagent(query: str):
     result = invoice_information_subagent.invoke({
         "messages": [HumanMessage(content=query)]
     })
     subagent_response = result["messages"][-1].content
     return subagent_response
+
+
+# 构建超级代理
+supervisor = create_agent(
+    model=model,
+    tools=[call_music_catalog_subagent, call_invoice_information_subagent],
+    name="supervisor",
+    system_prompt=supervisor_prompt,
+    state_schema=State,
+    checkpointer=checkpointer,
+    store=in_memory_store
+)
+
+
+question = "我最近一次购买花了多少钱?另外你们有哪些滚石乐队的专辑?";
+config = {"configurable": {"thread_id": uuid7()}}
+
+
+result = supervisor.invoke({
+    "messages": [HumanMessage(content=question)],
+    "customer_id": 1
+},config=config)
+
+print("\n")
+print("\n")
+
+for message in result["messages"]:
+    message.pretty_print()
+
+print("\n")
