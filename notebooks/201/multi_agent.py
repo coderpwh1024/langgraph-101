@@ -402,7 +402,8 @@ supervisor_prompt = """
 
 
 # 调用发票子智能体
-@tool(name="invoice_information_subagent", description="一个能够协助处理所有发票相关查询的智能体。它可以检索关于客户过往购买记录或发票的信息")
+@tool(name="invoice_information_subagent",
+      description="一个能够协助处理所有发票相关查询的智能体。它可以检索关于客户过往购买记录或发票的信息")
 def call_invoice_information_subagent(runtime: ToolRuntime, query: str):
     result = invoice_information_subagent.invoke({
         "messages": {HumanMessage(content=query)},
@@ -412,4 +413,10 @@ def call_invoice_information_subagent(runtime: ToolRuntime, query: str):
     return subagent_response
 
 
-
+@tool(name="music_catalog_subagent",description="一个能够协助处理所有音乐相关查询的智能体。该智能体可以访问用户已保存的音乐偏好。它还能从数据库中检索数字音乐商店的音乐目录信息(专辑、曲目、歌曲等)。")
+def call_music_catalog_subagent(query: str):
+    result = invoice_information_subagent.invoke({
+        "messages": [HumanMessage(content=query)]
+    })
+    subagent_response = result["messages"][-1].content
+    return subagent_response
