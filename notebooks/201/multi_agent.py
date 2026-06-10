@@ -417,7 +417,7 @@ def call_invoice_information_subagent(runtime: ToolRuntime, query: str):
 @tool(name_or_callable="music_catalog_subagent",
       description="一个能够协助处理所有音乐相关查询的智能体。该智能体可以访问用户已保存的音乐偏好。它还能从数据库中检索数字音乐商店的音乐目录信息(专辑、曲目、歌曲等)。")
 def call_music_catalog_subagent(query: str):
-    result = invoice_information_subagent.invoke({
+    result = music_catalog_subagent.invoke({
         "messages": [HumanMessage(content=query)]
     })
     subagent_response = result["messages"][-1].content
