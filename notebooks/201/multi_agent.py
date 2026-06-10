@@ -238,9 +238,12 @@ result = music_catalog_subagent.invoke({"messages": [HumanMessage(content=questi
 for message in result["messages"]:
     message.pretty_print()
 
+
+print("\n")
+print("\n")
 print(
     "-------------------------------------------01-1.2-是用LangChain 的create_agent 构建智能体--------------------------------------------------------")
-
+print("\n")
 
 # 获取指定客户的发票(按日期排序
 @tool
@@ -339,7 +342,7 @@ invoice_information_subagent = create_agent(
     model=model,
     tools=invoice_tools,
     name="invoice_information_subagent",
-    prompt=invoice_subagent_prompt,
+    system_prompt=invoice_subagent_prompt,
     state_schema=State,
     checkpointer=checkpointer,
     store=in_memory_store
@@ -353,7 +356,7 @@ result = invoice_information_subagent.invoke({"messages": [HumanMessage(content=
                                              config=config)
 
 #  打印结果
-for message in result.messages:
+for message in result["messages"]:
     message.pretty_print()
 
 
