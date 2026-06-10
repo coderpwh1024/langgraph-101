@@ -4,7 +4,7 @@ from pathlib import Path
 
 import sqlite3
 from typing import TypedDict, Annotated, List
-
+from langchain.agents import create_agent
 import requests
 from langchain_core.messages import AnyMessage, SystemMessage, HumanMessage
 from langchain_core.stores import InMemoryStore
@@ -308,6 +308,62 @@ def get_employee_by_invoice_and_customer(runtime: ToolRuntime, invoice_id: int) 
 # 工具集合
 invoice_tools = [get_invoices_by_customer_sorted_by_date, get_invoices_sorted_by_unit_price,
                  get_employee_by_invoice_and_customer]
+
+# 提示词部分
+invoice_subagent_prompt = """
+    <important_background>
+    你是一支助手团队中的子智能体(subagent)。你专门负责检索和处理发票信息。
+    发票包含诸如歌曲购买记录和账单历史等信息。只有当问题以某种方式涉及账单、发票或购买时,才作出回应。
+    如果你无法检索到发票信息,请回复说你无法获取该信息。
+    重要:你与客户的交互是通过一个自动化系统进行的。你并非直接与客户对话,因此请避免闲聊或追问,只需专注于用必要的信息来回应请求。
+    </important_background>
+
+    <tools>
+    你可以使用三个工具。这些工具能让你从数据库中检索和处理发票信息。工具如下:
+    - get_invoices_by_customer_sorted_by_date:该工具检索某位客户的所有发票,并按发票日期排序。
+    - get_invoices_sorted_by_unit_price:该工具检索某位客户的所有发票,并按单价排序。
+    - get_employee_by_invoice_and_customer:该工具检索与某张发票和某位客户相关联的员工信息。
+    </tools>
+
+   <core_responsibilities>
+    - 从数据库中检索和处理发票信息
+    - 当客户提出要求时,提供有关发票的详细信息,包括客户详情、发票日期、总金额、与发票关联的员工等。
+    - 在回应中始终保持专业、友好和耐心的态度。
+    </core_responsibilities>
+
+    你可能会获得一些额外的上下文信息,应当用它来帮助回答客户的查询。该信息将提供在下方:
+    """
+
+# 构建子智能体
+invoice_information_subagent = create_agent(
+    model=model,
+    tools=invoice_tools,
+    name="invoice_information_subagent",
+    prompt=invoice_subagent_prompt,
+    state_schema=State,
+    checkpointer=checkpointer,
+    store=in_memory_store
+)
+
+question = "我最近的一张发票是什么?当时是哪位员工为我处理的?"
+config = {"configurable": {"thread_id": uuid7()}}
+
+# 调用子智能体
+result = invoice_information_subagent.invoke({"messages": [HumanMessage(content=question)], "customer_id": 1},
+                                             config=config)
+
+#  打印结果
+for message in result.messages:
+    message.pretty_print()
+
+
+
+
+
+
+
+
+
 
 print(
     "-------------------------------------------02-构建-多智能体-架构--------------------------------------------------------")
