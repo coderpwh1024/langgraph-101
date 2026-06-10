@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 import sqlite3
+from time import process_time_ns
 from typing import TypedDict, Annotated, List
 from langchain.agents import create_agent
 import requests
@@ -354,6 +355,12 @@ config = {"configurable": {"thread_id": uuid7()}}
 # 调用子智能体
 result = invoice_information_subagent.invoke({"messages": [HumanMessage(content=question)], "customer_id": 1},
                                              config=config)
+
+
+print("\n")
+print(f"result:{result}")
+print("\n")
+print("\n")
 
 #  打印结果
 for message in result["messages"]:
