@@ -436,7 +436,9 @@ supervisor = create_agent(
 )
 
 
-question = "我最近一次购买花了多少钱?另外你们有哪些滚石乐队的专辑?";
+# question = "我最近一次购买花了多少钱?另外你们有哪些滚石乐队的专辑?";
+
+question="我最喜欢的水果是什么？";
 config = {"configurable": {"thread_id": uuid7()}}
 
 
