@@ -12,7 +12,7 @@ from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import START, END
 from langgraph.graph import add_messages, StateGraph
-from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import ToolNode, ToolRuntime
 from langsmith import uuid7
 from sqlalchemy import create_engine, StaticPool
 from langchain_community.utilities.sql_database import SQLDatabase
@@ -22,8 +22,6 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from utils.models import model
-
-
 
 
 # 获取数据库连接
@@ -208,6 +206,7 @@ def should_continue(state: State):
     else:
         return "continue"
 
+
 # 构建音乐流程
 music_workflow = StateGraph(State)
 
@@ -219,21 +218,71 @@ music_workflow.add_node("music_tool_node", music_tool_node)
 music_workflow.add_edge(START, "music_assistant")
 
 #  添加条件 edge
-music_workflow.add_conditional_edges("music_assistant",should_continue,
+music_workflow.add_conditional_edges("music_assistant", should_continue,
                                      {
-                                         "continue":"music_tool_node",
-                                         "end":END
+                                         "continue": "music_tool_node",
+                                         "end": END
                                      })
 
 music_workflow.add_edge("music_tool_node", "music_assistant")
 
 # 编译
-music_catalog_subagent = music_workflow.compile(name="music_catalog_subagent",checkpointer=checkpointer,store=in_memory_store)
+music_catalog_subagent = music_workflow.compile(name="music_catalog_subagent", checkpointer=checkpointer,
+                                                store=in_memory_store)
 
 question = "我喜欢滚石乐队(The Rolling Stones)。你能推荐一些他们的歌,或者其他我可能会喜欢的艺术家的歌吗?"
 config = {"configurable": {"thread_id": uuid7()}}
 
-result = music_catalog_subagent.invoke({"messages":[HumanMessage(content=question)]},config= config)
+result = music_catalog_subagent.invoke({"messages": [HumanMessage(content=question)]}, config=config)
 
 for message in result["messages"]:
     message.pretty_print()
+
+
+print(
+    "-------------------------------------------01-1.2-是用LangChain 的create_agent 构建智能体--------------------------------------------------------")
+
+
+
+
+
+
+
+
+
+
+print(
+    "-------------------------------------------02-构建-多智能体-架构--------------------------------------------------------")
+
+
+supervisor_prompt = """
+  <背景>
+  你是一家数字音乐商店的资深客户支持助手。你可以处理与音乐目录相关的问题，
+  或与过往购买记录、歌曲或专辑是否有售相关的发票（账单）问题。
+  你致力于提供卓越的服务，确保客户的疑问得到全面解答，并且你拥有一支子代理
+  （subagent）团队，可以用来协助回答客户的咨询。
+  你的主要职责是将任务委派给这个多代理团队，从而解答客户的问题。
+  </背景>
+
+  <重要指示>
+  回复客户时，务必通过总结各个子代理的回复结果来作答。
+  如果问题与音乐或发票无关，请礼貌地提醒客户你的工作范围，不要回答无关的问题。
+  根据消息中已经执行过的步骤，你的职责是依据用户的咨询调用合适的子代理。
+  </重要指示>
+
+  <工具>
+  你有 2 个工具可用于向团队中的子代理委派任务：
+  回复客户时，务必通过总结各个子代理的回复结果来作答。
+  如果问题与音乐或发票无关，请礼貌地提醒客户你的工作范围，不要回答无关的问题。
+  根据消息中已经执行过的步骤，你的职责是依据用户的咨询调用合适的子代理。
+  </重要指示>
+
+  <工具>
+  你有 2 个工具可用于向团队中的子代理委派任务：
+  1. music_catalog_information_subagent（音乐目录信息子代理）：调用此工具可将任务
+     委派给音乐子代理。该音乐代理可以访问用户保存的音乐偏好，还能从数据库中检索
+     这家数字音乐商店的音乐目录信息（专辑、曲目、歌曲等）。
+  2. invoice_information_subagent（发票信息子代理）：调用此工具可将任务委派给发票
+     子代理。该子代理能够从数据库中检索客户的历史购买记录或发票信息。
+  </工具>
+"""
