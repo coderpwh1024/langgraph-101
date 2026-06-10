@@ -238,22 +238,79 @@ result = music_catalog_subagent.invoke({"messages": [HumanMessage(content=questi
 for message in result["messages"]:
     message.pretty_print()
 
-
 print(
     "-------------------------------------------01-1.2-是用LangChain 的create_agent 构建智能体--------------------------------------------------------")
 
 
+# 获取指定客户的发票(按日期排序
+@tool
+def get_invoices_by_customer_sorted_by_date(runtime: ToolRuntime) -> list[dict]:
+    """
+    使用客户 ID 查询该客户的所有发票。客户 ID 存放在状态(state)变量中,因此你不会在消息历史中看到它。
+    发票按发票日期降序排列,这在客户想查看最近/最早的发票,或想查看特定日期范围内的发票时很有帮助。
+    Returns:
+    list[dict]: 该客户的发票列表。
+    """
+    customer_id = runtime.state.get("customer_id", {})
+    return db.run(f"SELECT * FROM Invoice WHERE CustomerId = {customer_id} ORDER BY InvoiceDate DESC;")
 
 
+# 获取发票(按时间排序)
+@tool
+def get_invoices_sorted_by_unit_price(runtime: ToolRuntime) -> list[dict]:
+    """
+     当客户想根据发票的单价(unit price)/费用查询某张发票的详细信息时,使用此工具。
+     此工具会查询该客户的所有发票,并按单价从高到低排序。要找到与客户关联的发票,
+     我们需要知道客户 ID。客户 ID 存放在状态(state)变量中,因此你不会在消息历史中看到它。
+
+     Returns:
+         list[dict]: 按单价排序的发票列表。
+     """
+    customer_id = runtime.state.get("customer_id", {})
+    query = f"""
+        SELECT Invoice.*, InvoiceLine.UnitPrice
+        FROM Invoice
+        JOIN InvoiceLine ON Invoice.InvoiceId = InvoiceLine.InvoiceId
+        WHERE Invoice.CustomerId = {customer_id}
+        ORDER BY InvoiceLine.UnitPrice DESC;
+    """
+    return db.run(query)
 
 
+# 根据发票和客户获取(负责的)员工
+@tool
+def get_employee_by_invoice_and_customer(runtime: ToolRuntime, invoice_id: int) -> dict:
+    """
+    此工具接收发票 ID 和客户 ID,返回与该发票关联的员工信息。
+    客户 ID 存放在状态(state)变量中,因此你不会在消息历史中看到它。
+
+    Args:
+        invoice_id (int): 指定发票的 ID。
+
+    Returns:
+        dict: 与该发票关联的员工信息。
+    """
+    customer_id = runtime.state.get("customer_id", {})
+    query = f"""
+            SELECT Employee.FirstName, Employee.Title, Employee.Email
+            FROM Employee
+            JOIN Customer ON Customer.SupportRepId = Employee.EmployeeId
+            JOIN Invoice ON Invoice.CustomerId = Customer.CustomerId
+            WHERE Invoice.InvoiceId = ({invoice_id}) AND Invoice.CustomerId = ({customer_id});
+        """
+    employee_info = db.run(query, include_columns=True)
+
+    if not employee_info:
+        return f"未找到与发票 ID {invoice_id} 和客户 ID {customer_id} 关联的员工"
+    return employee_info
 
 
-
+# 工具集合
+invoice_tools = [get_invoices_by_customer_sorted_by_date, get_invoices_sorted_by_unit_price,
+                 get_employee_by_invoice_and_customer]
 
 print(
     "-------------------------------------------02-构建-多智能体-架构--------------------------------------------------------")
-
 
 supervisor_prompt = """
   <背景>
