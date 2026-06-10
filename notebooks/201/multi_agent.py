@@ -239,12 +239,12 @@ result = music_catalog_subagent.invoke({"messages": [HumanMessage(content=questi
 for message in result["messages"]:
     message.pretty_print()
 
-
 print("\n")
 print("\n")
 print(
     "-------------------------------------------01-1.2-是用LangChain 的create_agent 构建智能体--------------------------------------------------------")
 print("\n")
+
 
 # 获取指定客户的发票(按日期排序
 @tool
@@ -356,7 +356,6 @@ config = {"configurable": {"thread_id": uuid7()}}
 result = invoice_information_subagent.invoke({"messages": [HumanMessage(content=question)], "customer_id": 1},
                                              config=config)
 
-
 print("\n")
 print(f"result:{result}")
 print("\n")
@@ -365,15 +364,6 @@ print("\n")
 #  打印结果
 for message in result["messages"]:
     message.pretty_print()
-
-
-
-
-
-
-
-
-
 
 print(
     "-------------------------------------------02-构建-多智能体-架构--------------------------------------------------------")
@@ -409,3 +399,17 @@ supervisor_prompt = """
      子代理。该子代理能够从数据库中检索客户的历史购买记录或发票信息。
   </工具>
 """
+
+
+# 调用发票子智能体
+@tool(name="invoice_information_subagent", description="一个能够协助处理所有发票相关查询的智能体。它可以检索关于客户过往购买记录或发票的信息")
+def call_invoice_information_subagent(runtime: ToolRuntime, query: str):
+    result = invoice_information_subagent.invoke({
+        "messages": {HumanMessage(content=query)},
+        "customer_id": runtime.state.get("customer_id", {})
+    })
+    subagent_response = result["messages"][-1].content
+    return subagent_response
+
+
+
