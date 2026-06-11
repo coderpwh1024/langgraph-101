@@ -18,6 +18,7 @@ from langsmith import uuid7
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, StaticPool
 from langchain_community.utilities.sql_database import SQLDatabase
+from sqlalchemy.orm.base import state_str
 
 project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
@@ -478,3 +479,12 @@ structured_llm = model.with_structured_output(schema=PhoneNumberExtraction)
 # 结构化返回，提示词部分
 structured_system_prompt = """你是一名客服代表,负责提取客户的电话号码。\n 只从消息历史记录中提取客户的账户信息。如果他们尚未提供该信息,则为该字段返回一个空字符串"""
 
+
+def verify_info(state:State):
+    if state.get("customer_id") is not None:
+        return
+    else:
+        user_input =  state["messages"][-1]
+        parse_info =structured_llm.invoke([SystemMessage(content=structured_system_prompt)]+[user_input])
+
+        identifier =  parse_info.phone_number
