@@ -1,5 +1,7 @@
-# Claude Code 运行时文件
-.claude/
+# Claude Code 运行时文件（保留团队共享的 settings.json）
+.claude/*
+!.claude/settings.json
+.claude/settings.local.json
 
 # JetBrains IDE 配置文件
 .idea/
