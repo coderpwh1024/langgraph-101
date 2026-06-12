@@ -14,6 +14,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import START, END
 from langgraph.graph import add_messages, StateGraph
 from langgraph.prebuilt import ToolNode, ToolRuntime
+from langgraph.types import interrupt
 from langsmith import uuid7
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, StaticPool
@@ -518,3 +519,18 @@ def verify_info(state: State):
             response = model.invoke([SystemMessage(content=system_instructions)] + state["messages"])
 
             return {"messages": [response]}
+
+
+# 添加用户输入
+def human_input(state: State):
+    """空操作节点,用于在此处触发中断"""
+    user_input = interrupt("请提供输入。")
+    return {"messages": [HumanMessage(content=user_input)]}
+
+
+# 是否需要中断
+def should_interrupt(state: State):
+    if state.get("customer_id") is not None:
+        return "continue"
+    else:
+        return "interrupt"
