@@ -1,6 +1,5 @@
 import ast
 import sys
-from ast import literal_eval
 from pathlib import Path
 
 import sqlite3
@@ -501,7 +500,7 @@ def verify_info(state: State):
                 pass
 
         if customer_id != "":
-            intent_message = AIMessage(content="感谢您提供的信息！我已成功验证您的账户，客户 ID 为 {customer_id}")
+            intent_message = AIMessage(content=f"感谢您提供的信息！我已成功验证您的账户，客户 ID 为 {customer_id}")
             return {
                 "customer_id": customer_id,
                 "messages": [intent_message]
@@ -516,6 +515,6 @@ def verify_info(state: State):
 
                         重要：在客户身份验证通过之前，不要询问任何与他们的需求相关的问题，也不要尝试处理他们的需求。出于安全考虑，你只能询问身份验证相关的信息，这一点至关重要。
                         """
-            response = model.invoke([SystemMessage(content=system_instructions)] + state[message])
+            response = model.invoke([SystemMessage(content=system_instructions)] + state["messages"])
 
             return {"messages": [response]}
