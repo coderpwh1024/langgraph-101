@@ -1,5 +1,6 @@
 import ast
 import sys
+from ast import literal_eval
 from pathlib import Path
 
 import sqlite3
@@ -7,7 +8,7 @@ from time import process_time_ns
 from typing import TypedDict, Annotated, List
 from langchain.agents import create_agent
 import requests
-from langchain_core.messages import AnyMessage, SystemMessage, HumanMessage
+from langchain_core.messages import AnyMessage, SystemMessage, HumanMessage, AIMessage
 from langchain_core.stores import InMemoryStore
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
@@ -480,11 +481,41 @@ structured_llm = model.with_structured_output(schema=PhoneNumberExtraction)
 structured_system_prompt = """你是一名客服代表,负责提取客户的电话号码。\n 只从消息历史记录中提取客户的账户信息。如果他们尚未提供该信息,则为该字段返回一个空字符串"""
 
 
-def verify_info(state:State):
+def verify_info(state: State):
     if state.get("customer_id") is not None:
         return
     else:
-        user_input =  state["messages"][-1]
-        parse_info =structured_llm.invoke([SystemMessage(content=structured_system_prompt)]+[user_input])
+        user_input = state["messages"][-1]
+        parse_info = structured_llm.invoke([SystemMessage(content=structured_system_prompt)] + [user_input])
 
-        identifier =  parse_info.phone_number
+        identifier = parse_info.phone_number
+        customer_id = ""
+        if (identifier):
+            query = f"SELECT CustomerId FROM Customer where Phone ='{identifier}'"
+            result = db.run(query)
+            try:
+                formatted_result = ast.literal_eval(result)
+                if formatted_result:
+                    customer_id = formatted_result[0][0]
+            except(ValueError, SyntaxError):
+                pass
+
+        if customer_id != "":
+            intent_message = AIMessage(content="感谢您提供的信息！我已成功验证您的账户，客户 ID 为 {customer_id}")
+            return {
+                "customer_id": customer_id,
+                "messages": [intent_message]
+            }
+        else:
+            system_instructions = """
+                        你是一名音乐商店客服智能体，你的首要任务是在客户支持流程的第一步验证客户身份。
+                        在客户账户通过验证之前，你不能为其提供任何支持服务。
+                        为了验证客户身份，请识别他们提供的电话号码。
+                        如果客户尚未提供电话号码，请向他们索要。
+                        如果客户已提供电话号码但查不到对应的记录，请让他们核对并修改。
+
+                        重要：在客户身份验证通过之前，不要询问任何与他们的需求相关的问题，也不要尝试处理他们的需求。出于安全考虑，你只能询问身份验证相关的信息，这一点至关重要。
+                        """
+            response = model.invoke([SystemMessage(content=system_instructions)] + state[message])
+
+            return {"messages": [response]}
