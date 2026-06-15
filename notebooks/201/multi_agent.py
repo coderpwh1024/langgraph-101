@@ -534,3 +534,12 @@ def should_interrupt(state: State):
         return "continue"
     else:
         return "interrupt"
+
+
+# 构建多智能体
+multi_agent_verify = StateGraph(State,input_schema=InputState)
+multi_agent_verify.add_node("verify_info",verify_info)
+multi_agent_verify.add_node("human_input",human_input)
+multi_agent_verify.add_node("supervisor",supervisor)
+
+
