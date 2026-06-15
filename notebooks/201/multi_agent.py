@@ -14,12 +14,14 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import START, END
 from langgraph.graph import add_messages, StateGraph
 from langgraph.prebuilt import ToolNode, ToolRuntime
-from langgraph.types import interrupt
+from langgraph.types import interrupt, Command
 from langsmith import uuid7
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, StaticPool
 from langchain_community.utilities.sql_database import SQLDatabase
 from sqlalchemy.orm.base import state_str
+
+from notebooks.utils.utils import show_graph
 
 project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
@@ -537,9 +539,50 @@ def should_interrupt(state: State):
 
 
 # 构建多智能体
-multi_agent_verify = StateGraph(State,input_schema=InputState)
-multi_agent_verify.add_node("verify_info",verify_info)
-multi_agent_verify.add_node("human_input",human_input)
-multi_agent_verify.add_node("supervisor",supervisor)
+multi_agent_verify = StateGraph(State, input_schema=InputState)
 
+# 添加节点
+multi_agent_verify.add_node("verify_info", verify_info)
+multi_agent_verify.add_node("human_input", human_input)
+multi_agent_verify.add_node("supervisor", supervisor)
 
+# 添加边
+multi_agent_verify.add_edge(START, "verify_info")
+multi_agent_verify.add_conditional_edges("verify_info", should_interrupt,
+                                         {
+                                             "continue": "supervisor",
+                                             "interrupt": "human_input"
+                                         })
+multi_agent_verify.add_edge("human_input", "verify_info")
+multi_agent_verify.add_edge("supervisor", END)
+
+# 编译
+multi_agent_verify_graph = multi_agent_verify.compile(name="multi_agent_verify", checkpointer=checkpointer,
+                                                      store=in_memory_store)
+show_graph(multi_agent_verify_graph, xray=True)
+
+question = "我最近一次购买花了多少钱?"
+config = {"configurable": {"thread_id": uuid7()}}
+
+result = multi_agent_verify_graph.invoke({"messages": [HumanMessage(content=question)]}, config=config)
+
+for message in result["messages"]:
+    message.pretty_print()
+
+print("\n")
+print("\n")
+
+question = "我的电话号码是 +55 (12) 3923-5555"
+config = {"configurable": {"thread_id": uuid7()}}
+result = multi_agent_verify_graph.invoke(Command(resume=question), config=config)
+
+for message in result["messages"]:
+    message.pretty_print()
+
+print("\n")
+print("\n")
+
+question = " 你有哪些 U2 的专辑？"
+result = multi_agent_verify_graph.invoke({"messages": [HumanMessage(content=question)]}, config=config)
+for message in result["messages"]:
+    message.pretty_print()
