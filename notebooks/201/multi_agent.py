@@ -585,3 +585,8 @@ question = " 你有哪些 U2 的专辑？"
 result = multi_agent_verify_graph.invoke({"messages": [HumanMessage(content=question)]}, config=config)
 for message in result["messages"]:
     message.pretty_print()
+
+
+
+print(
+    "-------------------------------------------04-添加记忆---------------------------------------------------------")
