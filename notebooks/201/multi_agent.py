@@ -590,3 +590,15 @@ for message in result["messages"]:
 
 print(
     "-------------------------------------------04-添加记忆---------------------------------------------------------")
+
+# 添加格式化用户记忆
+def format_user_memory(user_data):
+    """ 格式化用户的音乐偏好（如果有的话）"""
+    profile = user_data["memory"]
+    result =""
+    if hasattr(profile,"music_preferences") and profile.music_preferences:
+        result = f"{profile.music_preferences}"
+    return result.strip()
+
+
+
