@@ -573,7 +573,6 @@ print("\n")
 print("\n")
 
 question = "我的电话号码是 +55 (12) 3923-5555"
-config = {"configurable": {"thread_id": uuid7()}}
 result = multi_agent_verify_graph.invoke(Command(resume=question), config=config)
 
 for message in result["messages"]:
