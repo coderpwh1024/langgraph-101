@@ -8,7 +8,7 @@ from typing import TypedDict, Annotated, List
 from langchain.agents import create_agent
 import requests
 from langchain_core.messages import AnyMessage, SystemMessage, HumanMessage, AIMessage
-from langchain_core.stores import InMemoryStore
+from langchain_core.stores import InMemoryStore, BaseStore
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import START, END
@@ -586,19 +586,22 @@ result = multi_agent_verify_graph.invoke({"messages": [HumanMessage(content=ques
 for message in result["messages"]:
     message.pretty_print()
 
-
-
 print(
     "-------------------------------------------04-添加记忆---------------------------------------------------------")
+
 
 # 添加格式化用户记忆
 def format_user_memory(user_data):
     """ 格式化用户的音乐偏好（如果有的话）"""
     profile = user_data["memory"]
-    result =""
-    if hasattr(profile,"music_preferences") and profile.music_preferences:
+    result = ""
+    if hasattr(profile, "music_preferences") and profile.music_preferences:
         result = f"{profile.music_preferences}"
     return result.strip()
 
 
+# 加载记忆
+def load_memory(state: State, store: BaseStore):
+    """加载用户的音乐偏好（如果有的话）"""
 
+    user_id = state["customer_id"]
