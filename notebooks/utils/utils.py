@@ -17,11 +17,11 @@ def show_graph(graph,xray=False):
     """
     from IPython.display import Image
     try:
-        return  Image(graph.get_graph(xray=xray).dray_mermaid_png())
+        return  Image(graph.get_graph(xray=xray).draw_mermaid_png())
     except Exception as e:
-        print("图片读取失败，异常为:{e}")
+        print(f"图片读取失败，异常为:{e}")
         print("开始进行画图")
-        ascii_diagram = graph.get_graph(xray=xray).dray_asscli()
+        ascii_diagram = graph.get_graph(xray=xray).draw_ascii()
         print(ascii_diagram)
         return None
 
