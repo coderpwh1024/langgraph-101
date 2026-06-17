@@ -1,32 +1,32 @@
 import ast
+import sqlite3
 import sys
 from pathlib import Path
+from typing import Annotated, List, TypedDict
 
-import sqlite3
-from typing import TypedDict, Annotated, List
-from langchain.agents import create_agent
 import requests
-from langchain_core.messages import AnyMessage, SystemMessage, HumanMessage, AIMessage
-from langgraph.store.memory import InMemoryStore
-from langgraph.store.base import BaseStore
+from langchain.agents import create_agent
+from langchain_community.utilities.sql_database import SQLDatabase
+from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.constants import START, END
-from langgraph.graph import add_messages, StateGraph
+from langgraph.constants import END, START
+from langgraph.graph import StateGraph, add_messages
 from langgraph.prebuilt import ToolNode, ToolRuntime
-from langgraph.types import interrupt, Command
+from langgraph.store.base import BaseStore
+from langgraph.store.memory import InMemoryStore
+from langgraph.types import Command, interrupt
 from langsmith import uuid7
 from pydantic import BaseModel, Field
-from sqlalchemy import create_engine, StaticPool
-from langchain_community.utilities.sql_database import SQLDatabase
+from sqlalchemy import StaticPool, create_engine
 
-from notebooks.utils.utils import show_graph
-
+# 将 notebooks 目录加入 sys.path，以便脚本方式运行时能 import utils.*
 project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from utils.models import model
+from utils.utils import show_graph
 
 
 # 获取数据库连接
@@ -77,6 +77,7 @@ class State(InputState):
 @tool
 def get_albums_by_artist(artist: str):
     """获取某位艺术家的专辑"""
+    # 注意：教学示例，artist 直接拼进 SQL 存在注入风险，生产环境应改用参数化查询
     return db.run(
         f"""select Album.Title,Artist.Name FROM  Album JOIN Artist ON Album.ArtistId=Artist.ArtistId WHERE Artist.Name LIKE'%{artist}%' """,
         include_columns=True
@@ -87,6 +88,7 @@ def get_albums_by_artist(artist: str):
 @tool
 def get_tracks_by_artist(artist: str):
     """按艺术家（或相似艺术家）获取歌曲"""
+    # 注意：教学示例，artist 直接拼进 SQL 存在注入风险，生产环境应改用参数化查询
     return db.run(
         f"""
             SELECT Track.Name as SongName, Artist.Name as ArtistName 
@@ -102,13 +104,16 @@ def get_tracks_by_artist(artist: str):
 # 获取歌曲
 @tool
 def get_song_by_genre(genre: str):
+    """从数据库中获取匹配特定流派的歌曲。
+
+    Args:
+        genre: 要查询的歌曲流派（genre），支持模糊匹配。
+
+    Returns:
+        匹配该流派的歌曲列表，每个元素形如 {"Song": ..., "Artist": ...}；
+        未命中时返回提示字符串。
     """
-    从数据库中获取匹配特定流派的歌曲。
-    参数:
-      genre (str): 要获取的歌曲流派。
-    返回:
-      list[dict]: 匹配指定流派的歌曲列表。
-    """
+    # 注意：教学示例，genre 直接拼进 SQL 存在注入风险，生产环境应改用参数化查询
     # 查询 genre_id
     genre_id_query = f"SELECT GenreId From Genre WHERE NAME LIKE '%{genre}%'"
     genre_ids = db.run(genre_id_query)
@@ -137,8 +142,9 @@ def get_song_by_genre(genre: str):
 
 # 检查 歌曲
 @tool
-def check_for_songs(song_title):
+def check_for_songs(song_title: str):
     """根据歌曲名称检查歌曲是否存在"""
+    # 注意：教学示例，song_title 直接拼进 SQL 存在注入风险，生产环境应改用参数化查询
     return db.run(f""" SELECT * FROM Track WHERE Name LIKE '%{song_title}%'""", include_columns=True)
 
 
@@ -259,7 +265,8 @@ def get_invoices_by_customer_sorted_by_date(runtime: ToolRuntime) -> list[dict]:
     Returns:
     list[dict]: 该客户的发票列表。
     """
-    customer_id = runtime.state.get("customer_id", {})
+    customer_id = runtime.state.get("customer_id")
+    # 注意：教学示例，customer_id 直接拼进 SQL，生产环境应改用参数化查询
     return db.run(f"SELECT * FROM Invoice WHERE CustomerId = {customer_id} ORDER BY InvoiceDate DESC;")
 
 
@@ -274,7 +281,8 @@ def get_invoices_sorted_by_unit_price(runtime: ToolRuntime) -> list[dict]:
      Returns:
          list[dict]: 按单价排序的发票列表。
      """
-    customer_id = runtime.state.get("customer_id", {})
+    customer_id = runtime.state.get("customer_id")
+    # 注意：教学示例，customer_id 直接拼进 SQL，生产环境应改用参数化查询
     query = f"""
         SELECT Invoice.*, InvoiceLine.UnitPrice
         FROM Invoice
@@ -298,7 +306,8 @@ def get_employee_by_invoice_and_customer(runtime: ToolRuntime, invoice_id: int) 
     Returns:
         dict: 与该发票关联的员工信息。
     """
-    customer_id = runtime.state.get("customer_id", {})
+    customer_id = runtime.state.get("customer_id")
+    # 注意：教学示例，invoice_id / customer_id 直接拼进 SQL，生产环境应改用参数化查询
     query = f"""
             SELECT Employee.FirstName, Employee.Title, Employee.Email
             FROM Employee
@@ -404,7 +413,7 @@ supervisor_prompt = """
 def call_invoice_information_subagent(runtime: ToolRuntime, query: str):
     result = invoice_information_subagent.invoke({
         "messages": [HumanMessage(content=query)],
-        "customer_id": runtime.state.get("customer_id", {})
+        "customer_id": runtime.state.get("customer_id")
     })
     subagent_response = result["messages"][-1].content
     return subagent_response
@@ -483,18 +492,19 @@ def verify_info(state: State):
         parse_info = structured_llm.invoke([SystemMessage(content=structured_system_prompt)] + [user_input])
 
         identifier = parse_info.phone_number
-        customer_id = ""
-        if (identifier):
+        customer_id = None
+        if identifier:
+            # 注意：教学示例，identifier 直接拼进 SQL 存在注入风险，生产环境应改用参数化查询
             query = f"SELECT CustomerId FROM Customer where Phone ='{identifier}'"
             result = db.run(query)
             try:
                 formatted_result = ast.literal_eval(result)
                 if formatted_result:
                     customer_id = formatted_result[0][0]
-            except(ValueError, SyntaxError):
+            except (ValueError, SyntaxError):
                 pass
 
-        if customer_id != "":
+        if customer_id is not None:
             intent_message = AIMessage(content=f"感谢您提供的信息！我已成功验证您的账户，客户 ID 为 {customer_id}")
             return {
                 "customer_id": customer_id,
@@ -698,9 +708,3 @@ result = multi_agent_final_graph.invoke({"messages": [HumanMessage(content=quest
 
 for message in result["messages"]:
     message.pretty_print()
-
-print("\n")
-print("\n")
-
-print(
-    "-------------------------------------------05-部分---------------------------------------------------------")
