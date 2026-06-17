@@ -603,5 +603,20 @@ def format_user_memory(user_data):
 # 加载记忆
 def load_memory(state: State, store: BaseStore):
     """加载用户的音乐偏好（如果有的话）"""
-
     user_id = state["customer_id"]
+    namespace = ("memory_profile", user_id)
+    existing_memory = store.get(namespace, "user_memory")
+    formatted_memory = ""
+    if existing_memory and existing_memory.value:
+        formatted_memory = format_user_memory(existing_memory.value)
+    return {"loaded_memory": formatted_memory}
+
+
+# 用户的画像
+class UserProfile(BaseModel):
+    customer_id: str = Field(
+        description="用户的id"
+    )
+    music_preferences: str = Field(
+        description="用户的音乐偏好"
+    )
