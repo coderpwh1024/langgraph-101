@@ -23,3 +23,15 @@ examples = [
         "response": "我在这里只能帮您解答与我们数字音乐商店相关的问题。如果您对我们的音乐目录或历史购买有任何疑问，欢迎随时咨询！",
     },
 ]
+
+
+dataset_name = "LangGraph 101 多智能体：最终响应（python)"
+
+# 创建数据集
+if client.has_dataset(dataset_name=dataset_name):
+    dataset = client.create_dataset(dataset_name=dataset_name)
+    client.create_examples(inputs=[{"messages":[{"role":"user","content":ex["question"]}]} for ex in examples ],
+                           outputs=[{"messages":[{"role":"ai","content":ex["response"]}]} for ex in examples],
+                           dataset_id=dataset.id)
+
+
