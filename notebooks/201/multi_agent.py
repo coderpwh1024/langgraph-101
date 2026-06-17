@@ -669,3 +669,15 @@ def create_memory(state: State, store: BaseStore):
     update_memory = model.with_structured_output(UserProfile).invoke([formatted_system_message, user_prompt])
     key = "user_memory"
     store.put(namespace, key, {"memory", update_memory})
+
+
+# 构建工作流
+multi_agent_final = StateGraph(State, input_schema=InputState)
+
+#  添加节点
+multi_agent_final.add_node("verify_info", verify_info)
+multi_agent_final.add_node("human_input", human_input)
+multi_agent_final.add_node("load_memory", load_memory)
+multi_agent_final.add_node("supervisor", supervisor)
+multi_agent_final.add_node("create_memory", create_memory)
+
