@@ -620,3 +620,52 @@ class UserProfile(BaseModel):
     music_preferences: str = Field(
         description="用户的音乐偏好"
     )
+
+
+create_memory_prompt = """你是一名专业的分析师，正在观察一段发生在客户与客户支持助手之间的对话。该客户支持助手就职于一家数字音乐商店，并借助一个多智能体团队来响应客户的请求。
+你的任务是分析这段发生在客户与客户支持助手之间的对话，并更新与该客户关联的记忆档案（memory profile）。
+你尤其关注保存客户透露的任何音乐兴趣，特别是要将他们的音乐偏好保存到其记忆档案中。
+
+<core_instructions>
+1. 记忆档案可能为空。如果它为空，你应当始终为该客户创建一份新的记忆档案。
+2. 你应当识别客户在对话中表现出的任何音乐兴趣，并将其添加到记忆档案中——**前提是**它尚未存在于档案中。
+3. 对于记忆档案中的每一个字段，如果没有新信息，则不要更新其值——保持现有值不变。
+4. 只有在出现新信息时，才更新记忆档案中的值。
+</core_instructions>
+
+<expected_format>
+客户的记忆档案应包含以下字段：
+- customer_id：客户的客户 ID
+- music_preferences：客户的音乐偏好
+
+重要：请确保你的响应是一个包含这些字段的对象。
+</expected_format>
+
+
+<important_context>
+**以下为重要上下文**
+为帮助你完成此任务，我在下方附上了发生在客户与客户支持助手之间的对话，以及与该客户关联的、你应当更新或创建的现有记忆档案。
+
+你应当分析的客户与客户支持助手之间的对话如下：
+{conversation}
+
+与该客户关联的、你应当基于对话更新或创建的现有记忆档案如下：
+{memory_profile}
+
+</important_context>
+
+提醒：深呼吸，仔细思考后再作答。
+"""
+
+
+# 创建记忆
+def create_memory(state: State, store: BaseStore):
+    user_id = str(state["customer_id"])
+    namespace = ("memory_profile", user_id)
+    formatted_memory = state["loaded_memory"]
+    formatted_system_message = SystemMessage(
+        content=create_memory_prompt.format(conversation=state["messages"], memory_profile=formatted_memory))
+    user_prompt = HumanMessage(content="请根据指令分析对话内容，并更新客户的记忆画像")
+    update_memory = model.with_structured_output(UserProfile).invoke([formatted_system_message, user_prompt])
+    key = "user_memory"
+    store.put(namespace, key, {"memory", update_memory})
