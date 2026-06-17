@@ -2,8 +2,14 @@ import sys
 from pathlib import Path
 
 from langsmith import Client, uuid7
+from openevals.llm import create_async_llm_as_judge
+from openevals.prompts import CORRECTNESS_PROMPT
+
 from multi_agent import multi_agent_verify_graph, config
 from langgraph.types import Command
+
+from notebooks.utils.models import model
+
 # multi_agent.py 内部用 `from notebooks.utils.utils import show_graph`，
 # 需要项目根目录（含 notebooks/ 的目录）在 sys.path 上
 project_root = Path(__file__).resolve().parent.parent.parent
@@ -44,32 +50,39 @@ examples = [
     },
 ]
 
-
 dataset_name = "LangGraph 101 多智能体：最终响应（python)"
 
-# 创建数据集
-if client.has_dataset(dataset_name=dataset_name):
+# 创建数据集：仅当数据集不存在时才创建，避免重复创建报错
+if not client.has_dataset(dataset_name=dataset_name):
     dataset = client.create_dataset(dataset_name=dataset_name)
-    client.create_examples(inputs=[{"messages":[{"role":"user","content":ex["question"]}]} for ex in examples ],
-                           outputs=[{"messages":[{"role":"ai","content":ex["response"]}]} for ex in examples],
+    client.create_examples(inputs=[{"messages": [{"role": "user", "content": ex["question"]}]} for ex in examples],
+                           outputs=[{"messages": [{"role": "ai", "content": ex["response"]}]} for ex in examples],
                            dataset_id=dataset.id)
-
 
 # 创建图
 graph = multi_agent_verify_graph
 
 
 # 运行图
-async def run_graph(inputs:dict):
+async def run_graph(inputs: dict):
     """ 运行图并跟踪最终响应"""
     thread_id = uuid7()
 
-    configuration={"thread_id":thread_id,"user_id":"10"}
+    configuration = {"thread_id": thread_id, "user_id": "10"}
 
-    result = await graph.invoke(inputs,config==configuration)
+    result = await graph.invoke(inputs, config == configuration)
 
-    result = await  graph.ainvoke(Command(resume="我的电话号码是:+55 (11) 3033-5446"),config={"thread_id":thread_id,"user_id":"10"})
+    result = await  graph.ainvoke(Command(resume="我的电话号码是:+55 (11) 3033-5446"),
+                                  config={"thread_id": thread_id, "user_id": "10"})
 
-    return {"messages":[{"role":"ai","content":result["messages"][-1]["content"]}]}
+    return {"messages": [{"role": "ai", "content": result["messages"][-1]["content"]}]}
 
 
+# 创建评价器
+correctness_evaluator = create_async_llm_as_judge(
+    prompt=CORRECTNESS_PROMPT,
+    feedback_key="correctness",
+    judge=model
+)
+print("评价:\n")
+print(CORRECTNESS_PROMPT)
