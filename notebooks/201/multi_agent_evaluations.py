@@ -1,4 +1,24 @@
+import sys
+from pathlib import Path
+
 from langsmith import Client
+
+# multi_agent.py 内部用 `from notebooks.utils.utils import show_graph`，
+# 需要项目根目录（含 notebooks/ 的目录）在 sys.path 上
+project_root = Path(__file__).resolve().parent.parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+# multi_agent.py 与本文件同目录（notebooks/201/），目录名以数字开头不是合法包名，
+# 无法用点式 import，这里将该目录加入 sys.path 后按模块名直接 import
+current_dir = Path(__file__).resolve().parent
+if str(current_dir) not in sys.path:
+    sys.path.insert(0, str(current_dir))
+
+# 注意：import multi_agent 会执行其模块顶层的演示代码（含 invoke、联网建库），
+# multi_agent_verify_graph 即在该模块中编译得到
+from multi_agent import multi_agent_verify_graph
+
 client = Client()
 
 examples = [
@@ -35,3 +55,5 @@ if client.has_dataset(dataset_name=dataset_name):
                            dataset_id=dataset.id)
 
 
+# 创建图
+graph = multi_agent_verify_graph
