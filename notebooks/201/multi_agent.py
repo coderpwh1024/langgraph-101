@@ -3,12 +3,12 @@ import sys
 from pathlib import Path
 
 import sqlite3
-from time import process_time_ns
 from typing import TypedDict, Annotated, List
 from langchain.agents import create_agent
 import requests
 from langchain_core.messages import AnyMessage, SystemMessage, HumanMessage, AIMessage
-from langchain_core.stores import InMemoryStore, BaseStore
+from langgraph.store.memory import InMemoryStore
+from langgraph.store.base import BaseStore
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import START, END
@@ -19,7 +19,6 @@ from langsmith import uuid7
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, StaticPool
 from langchain_community.utilities.sql_database import SQLDatabase
-from sqlalchemy.orm.base import state_str
 
 from notebooks.utils.utils import show_graph
 
@@ -668,7 +667,7 @@ def create_memory(state: State, store: BaseStore):
     user_prompt = HumanMessage(content="请根据指令分析对话内容，并更新客户的记忆画像")
     update_memory = model.with_structured_output(UserProfile).invoke([formatted_system_message, user_prompt])
     key = "user_memory"
-    store.put(namespace, key, {"memory", update_memory})
+    store.put(namespace, key, {"memory": update_memory})
 
 
 # 构建工作流
