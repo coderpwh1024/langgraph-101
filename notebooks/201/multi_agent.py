@@ -681,3 +681,17 @@ multi_agent_final.add_node("load_memory", load_memory)
 multi_agent_final.add_node("supervisor", supervisor)
 multi_agent_final.add_node("create_memory", create_memory)
 
+
+# 添加边
+multi_agent_final.add_edge(START, "verify_info")
+multi_agent_verify.add_conditional_edges(
+    "verify_info", should_interrupt,
+    {
+        "continue":"load_memory",
+        "interrupt":"human_input",
+    }
+)
+multi_agent_verify.add_edge("human_input","verify_info")
+multi_agent_verify.add_edge("load_memory","supervisor")
+multi_agent_verify.add_edge("supervisor","create_memory")
+multi_agent_verify.add_edge("create_memory", END)
