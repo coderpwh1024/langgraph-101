@@ -681,17 +681,31 @@ multi_agent_final.add_node("load_memory", load_memory)
 multi_agent_final.add_node("supervisor", supervisor)
 multi_agent_final.add_node("create_memory", create_memory)
 
-
 # 添加边
 multi_agent_final.add_edge(START, "verify_info")
-multi_agent_verify.add_conditional_edges(
+multi_agent_final.add_conditional_edges(
     "verify_info", should_interrupt,
     {
-        "continue":"load_memory",
-        "interrupt":"human_input",
+        "continue": "load_memory",
+        "interrupt": "human_input",
     }
 )
-multi_agent_verify.add_edge("human_input","verify_info")
-multi_agent_verify.add_edge("load_memory","supervisor")
-multi_agent_verify.add_edge("supervisor","create_memory")
-multi_agent_verify.add_edge("create_memory", END)
+multi_agent_final.add_edge("human_input", "verify_info")
+multi_agent_final.add_edge("load_memory", "supervisor")
+multi_agent_final.add_edge("supervisor", "create_memory")
+multi_agent_final.add_edge("create_memory", END)
+
+# 编译
+multi_agent_final_graph = multi_agent_final.compile(name="multi_agent_final", checkpointer=checkpointer,
+                                                    store=in_memory_store)
+show_graph(multi_agent_final_graph, xray=True)
+
+question = "我的电话号码是 +55 (12) 3923-5555。我最近一次购买花了多少钱？你们有滚石乐队（the Rolling Stones）的哪些专辑"
+config = {"configurable": {"thread_id": uuid7()}}
+result = multi_agent_final_graph.invoke({"messages": [HumanMessage(content=question)]}, config=config)
+
+for message in result["messages"]:
+    message.pretty_print()
+
+print("\n")
+print("\n")
