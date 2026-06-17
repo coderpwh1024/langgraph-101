@@ -1,8 +1,9 @@
 import sys
 from pathlib import Path
 
-from langsmith import Client
-
+from langsmith import Client, uuid7
+from multi_agent import multi_agent_verify_graph, config
+from langgraph.types import Command
 # multi_agent.py 内部用 `from notebooks.utils.utils import show_graph`，
 # 需要项目根目录（含 notebooks/ 的目录）在 sys.path 上
 project_root = Path(__file__).resolve().parent.parent.parent
@@ -17,7 +18,6 @@ if str(current_dir) not in sys.path:
 
 # 注意：import multi_agent 会执行其模块顶层的演示代码（含 invoke、联网建库），
 # multi_agent_verify_graph 即在该模块中编译得到
-from multi_agent import multi_agent_verify_graph
 
 client = Client()
 
@@ -57,3 +57,18 @@ if client.has_dataset(dataset_name=dataset_name):
 
 # 创建图
 graph = multi_agent_verify_graph
+
+
+# 运行图
+async def run_graph(inputs:dict):
+    """ 运行图并跟踪最终响应"""
+    thread_id = uuid7()
+
+    configuration={"thread_id":thread_id,"user_id":10}
+
+    result = await graph.invoke(inputs,config==configuration)
+
+    result = await  graph.ainvoke(Command(resume="我的电话号码是:+55 (11) 3033-5446"),config={"thread_id":thread_id,"user_id":"10"})
+
+    return {"messages":[{"role":"ai","content":result["messages"][-1]["content"]}]}
+
