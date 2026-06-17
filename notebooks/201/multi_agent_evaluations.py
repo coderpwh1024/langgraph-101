@@ -64,11 +64,12 @@ async def run_graph(inputs:dict):
     """ 运行图并跟踪最终响应"""
     thread_id = uuid7()
 
-    configuration={"thread_id":thread_id,"user_id":10}
+    configuration={"thread_id":thread_id,"user_id":"10"}
 
     result = await graph.invoke(inputs,config==configuration)
 
     result = await  graph.ainvoke(Command(resume="我的电话号码是:+55 (11) 3033-5446"),config={"thread_id":thread_id,"user_id":"10"})
 
     return {"messages":[{"role":"ai","content":result["messages"][-1]["content"]}]}
+
 
