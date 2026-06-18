@@ -281,6 +281,24 @@ async def compress_research(state: ResearcherState, config):
     ])
 
     return {
-        "compressed_research":str(response.content),
-        "raw_notes":[raw_notes_content]
+        "compressed_research": str(response.content),
+        "raw_notes": [raw_notes_content]
     }
+
+
+# 构建搜索图
+researcher_builder = StateGraph(ResearcherState, output_schema=ResearcherOutputState)
+
+# 添加node
+researcher_builder.add_node("researcher", researcher)
+researcher_builder.add_node("researcher_tools", researcher_tools)
+researcher_builder.add_node("compress_research", compress_research)
+
+# 添加edge
+researcher_builder.add_edge(START, "researcher")
+researcher_builder.add_edge("researcher", "researcher_tools")
+researcher_builder.add_edge("compress_research", END)
+
+# 编译
+researcher_graph = researcher_builder.compile()
+researcher_graph
