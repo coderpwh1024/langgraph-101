@@ -302,7 +302,7 @@ researcher_builder.add_edge("compress_research", END)
 # 编译
 researcher_graph = researcher_builder.compile()
 
-test_query = "使用大语言模型（LLM）进行提示词工程（prompt engineering）有哪些最佳实践?"
+test_query = "2026年美加墨世界杯"
 
 # 初始化状态
 initial_state = {
