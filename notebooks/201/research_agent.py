@@ -18,7 +18,7 @@ import json
 import asyncio
 import operator
 from datetime import datetime
-from typing import Literal, Annotated
+from typing import Literal, Annotated, List
 from typing_extensions import TypedDict
 
 from langchain.chat_models import init_chat_model
@@ -79,3 +79,35 @@ def get_model():
         api_key=os.getenv("OPENAI_API_KEY"),
         use_response_api=True
     )
+
+
+print("模型初始化完成")
+print("\n")
+print("\n")
+
+print(
+    "-------------------------------------------01-构建-一个单例搜索 Agent--------------------------------------------------------")
+
+print("\n")
+
+
+# Researcher 状态
+class ResearcherState(TypedDict):
+    """单个 researcher agent 的状态 """
+    researcher_messages: Annotated[List[MessageLikeRepresentation], operator.add]
+    researcher_topic: str
+    tool_call_iterations: int
+
+
+# Researcher 输出状态
+class ResearcherOutputState(TypedDict):
+    """研究员的输出——仅保留压缩后的研究发现"""
+    researcher_messages: Annotated[List[MessageLikeRepresentation], operator.add]
+    compressed_research: str
+    raw_notes: list
+
+
+@tool(description="表示研究已完成")
+def ResearchComplete() -> str:
+    """当你已收集到足够信息、能够回答研究问题时，调用此工具"""
+    return " 研究已标记为完成"
