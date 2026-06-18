@@ -190,3 +190,32 @@ async def researcher(state: ResearcherState, config):
         "researcher_messages": [response],
         "tool_call_iterations": state.get("tool_call_iterations", 0) + 1
     }
+
+
+# 工具异步执行
+async def execute_tool_safely(tool, args):
+    """安全地执行工具，并进行错误处理"""
+    try:
+        return await tool.invoke(args)
+    except Exception as e:
+        print(f"工具调用错误：{e}")
+        return f"工具调用异常: {str(e)}"
+
+
+async def researcher_tools(state: ResearcherState, config) -> Command[Literal["researcher", "compress_research"]]:
+    """执行 researcher（研究员）调用的工"""
+
+    researcher_message = state["researcher_messages"][-1]
+    most_recent_message = researcher_message[-1]
+
+    has_tool_calls = bool(most_recent_message.tool_calls)
+    has_native_search = openai_websearch_called(most_recent_message)
+
+    if not has_tool_calls and not has_native_search:
+        return Command(goto="compress_search")
+
+    tools =get_all_tool()
+
+    tools_by_name = {
+        tool.name if hasattr(tool,"name") else tool.get("name","web_search"):tool for tool in tools
+     }
