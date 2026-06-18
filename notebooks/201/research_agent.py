@@ -228,3 +228,19 @@ async def researcher_tools(state: ResearcherState, config) -> Command[Literal["r
     # 执行工具
     observations = await  asyncio.gather(*tool_execution_tasks)
 
+    tool_outputs = [
+        ToolMessage(content=observations, name=tc["name"], tool_call_id=tc["id"]) for observation, tc in
+        zip(observations, tool_calls)
+    ]
+
+    exceed_iterations = state.get("tool_call_iterations", 0) >= MAX_REACT_TOOL_CALLS
+    research_complete = any(
+        tc["name"] == "ResearchComplete"
+        for tc in most_recent_message.tool_calls
+    )
+
+    if exceed_iterations or research_complete:
+        return Command(goto="compress_research",update={"researcher_messages":tool_outputs})
+
+    return Command(goto="researcher",update={"researcher_messages":tool_outputs})
+
