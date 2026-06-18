@@ -302,3 +302,25 @@ researcher_builder.add_edge("compress_research", END)
 # 编译
 researcher_graph = researcher_builder.compile()
 researcher_graph
+
+test_query = "使用大语言模型（LLM）进行提示词工程（prompt engineering）有哪些最佳实践?"
+
+# 初始化状态
+initial_state = {
+    "researcher_messages": [HumanMessage(content=test_query)],
+    "research_topic": test_query,
+    "tool_call_iterations": 0
+}
+
+result = await researcher_graph.ainvoke(initial_state)
+print("=" * 60)
+print("搜索的历史消息:\n")
+print("=" * 60)
+
+for message in result["researcher_messages"]:
+    message.pretty_print()
+
+print("\n" + "=" * 60)
+print("搜索结果:")
+print("=" * 60)
+print(result["compressed_research"])
