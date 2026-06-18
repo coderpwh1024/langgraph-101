@@ -312,15 +312,21 @@ initial_state = {
     "tool_call_iterations": 0
 }
 
-result = await researcher_graph.ainvoke(initial_state)
-print("=" * 60)
-print("搜索的历史消息:\n")
-print("=" * 60)
+async def main() -> None:
+    """以脚本方式运行 researcher 子图的端到端调用示例。"""
+    result = await researcher_graph.ainvoke(initial_state)
+    print("=" * 60)
+    print("搜索的历史消息:\n")
+    print("=" * 60)
 
-for message in result["researcher_messages"]:
-    message.pretty_print()
+    for message in result["researcher_messages"]:
+        message.pretty_print()
 
-print("\n" + "=" * 60)
-print("搜索结果:")
-print("=" * 60)
-print(result["compressed_research"])
+    print("\n" + "=" * 60)
+    print("搜索结果:")
+    print("=" * 60)
+    print(result["compressed_research"])
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
