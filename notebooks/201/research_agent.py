@@ -214,8 +214,17 @@ async def researcher_tools(state: ResearcherState, config) -> Command[Literal["r
     if not has_tool_calls and not has_native_search:
         return Command(goto="compress_search")
 
-    tools =get_all_tool()
+    tools = get_all_tool()
 
     tools_by_name = {
-        tool.name if hasattr(tool,"name") else tool.get("name","web_search"):tool for tool in tools
-     }
+        tool.name if hasattr(tool, "name") else tool.get("name", "web_search"): tool for tool in tools
+    }
+
+    tool_calls = most_recent_message.tool_calls
+
+    tool_execution_tasks = [
+        execute_tool_safely(tools_by_name[tc["name"]], tc["args"]) for tc in tool_calls
+    ]
+    # 执行工具
+    observations = await  asyncio.gather(*tool_execution_tasks)
+
