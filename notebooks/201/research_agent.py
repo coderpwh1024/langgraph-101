@@ -1,4 +1,4 @@
-import  os
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -6,8 +6,9 @@ load_dotenv()
 if not os.getenv("OPENAI_API_KEY"):
     raise ValueError("OPENAI_API_KEY not found in environment variables")
 
-import  sys
-from pathlib import  Path
+import sys
+from pathlib import Path
+
 project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
@@ -35,3 +36,9 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
 from utils.utils import show_graph
 from utils.models import model
+
+
+def get_today_str() -> str:
+    """获取格式化后用于展示的当前日期"""
+    now = datetime.now()
+    return f"{now:%a} {now:%b} {now.day} {now:%Y}"
