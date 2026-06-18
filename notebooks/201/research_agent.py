@@ -201,6 +201,7 @@ async def execute_tool_safely(tool, args):
         print(f"工具调用错误：{e}")
         return f"工具调用异常: {str(e)}"
 
+
 # 工具搜索
 async def researcher_tools(state: ResearcherState, config) -> Command[Literal["researcher", "compress_research"]]:
     """执行 researcher（研究员）调用的工"""
@@ -244,3 +245,42 @@ async def researcher_tools(state: ResearcherState, config) -> Command[Literal["r
 
     return Command(goto="researcher", update={"researcher_messages": tool_outputs})
 
+
+# 压缩搜索系统提示词
+compress_research_system_prompt = """你是一名研究助理，已经针对某个主题完成了研究。你的任务是整理这些研究发现。
+
+  <Task>
+  整理从工具调用和网页搜索中收集到的信息。所有相关信息都必须逐字保留、原样重复。
+  本步骤的目的仅仅是移除明显无关或重复的信息。
+  </Task>
+
+  <Guidelines>
+  1. 你的输出应当完整全面，包含收集到的全部信息和来源
+  2. 为每个来源添加行内引用标注，如 [1]、[2] 等
+  3. 在结尾处包含一个 "Sources" 章节，列出所有来源及其引用编号
+  4. 务必包含所有来源——后续会有另一个 LLM 将本报告与其他报告合并
+  </Guidelines>
+  """
+
+
+# 压缩异步搜索
+async def compress_research(state: ResearcherState, config):
+    """压缩并综合研究发现"""
+    researcher_messages = state.get("researcher_messages", [])
+    researcher_messages.append(HumanMessage(content="请整理这些结果，但不要进行概括——必须逐字、完整地保留所有相关信息。"))
+
+    # 压缩搜索提示词
+    compression_prompt = compress_research_system_prompt
+    # 上下文
+    messages = [SystemMessage(content=compression_prompt)] + researcher_messages
+
+    response = await  get_model().ainvoke(messages)
+
+    raw_notes_content = "\n".join([
+        str(message.content) for message in filter_messages(researcher_messages, include_types=["tool", "ai"])
+    ])
+
+    return {
+        "compressed_research":str(response.content),
+        "raw_notes":[raw_notes_content]
+    }
