@@ -201,7 +201,7 @@ async def execute_tool_safely(tool, args):
         print(f"工具调用错误：{e}")
         return f"工具调用异常: {str(e)}"
 
-
+# 工具搜索
 async def researcher_tools(state: ResearcherState, config) -> Command[Literal["researcher", "compress_research"]]:
     """执行 researcher（研究员）调用的工"""
 
@@ -226,11 +226,11 @@ async def researcher_tools(state: ResearcherState, config) -> Command[Literal["r
         execute_tool_safely(tools_by_name[tc["name"]], tc["args"]) for tc in tool_calls
     ]
     # 执行工具
-    observations = await  asyncio.gather(*tool_execution_tasks)
+    observations = await asyncio.gather(*tool_execution_tasks)
 
     tool_outputs = [
-        ToolMessage(content=observations, name=tc["name"], tool_call_id=tc["id"]) for observation, tc in
-        zip(observations, tool_calls)
+        ToolMessage(content=observation, name=tc["name"], tool_call_id=tc["id"])
+        for observation, tc in zip(observations, tool_calls)
     ]
 
     exceed_iterations = state.get("tool_call_iterations", 0) >= MAX_REACT_TOOL_CALLS
@@ -240,7 +240,7 @@ async def researcher_tools(state: ResearcherState, config) -> Command[Literal["r
     )
 
     if exceed_iterations or research_complete:
-        return Command(goto="compress_research",update={"researcher_messages":tool_outputs})
+        return Command(goto="compress_research", update={"researcher_messages": tool_outputs})
 
-    return Command(goto="researcher",update={"researcher_messages":tool_outputs})
+    return Command(goto="researcher", update={"researcher_messages": tool_outputs})
 
