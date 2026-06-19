@@ -1,5 +1,5 @@
 import operator
-from typing import TypedDict, Annotated
+from typing import Annotated, NotRequired, TypedDict
 
 from langchain_core.messages import MessageLikeRepresentation
 
@@ -18,6 +18,6 @@ class SupervisorState(TypedDict):
     """supervisor（监督者）智能体的 state"""
     supervisor_messages: Annotated[list[MessageLikeRepresentation], operator.add]
     research_brief: str
-    notes: Annotated[list[str], override_reducer]=[]
-    research_iterations: int = 0
-    raw_notes: Annotated[list[str], override_reducer] = []
+    notes: NotRequired[Annotated[list[str], override_reducer]]
+    research_iterations: NotRequired[int]
+    raw_notes: NotRequired[Annotated[list[str], override_reducer]]
