@@ -1,0 +1,288 @@
+{
+  "name": "PM-需求评估-工时评估-流水线-V2(多维表格+审批闭环)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pm-requirement",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook 接收需求",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 360],
+      "webhookId": "pm-requirement"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "project_id", "value": "={{ $json.body.project_id }}", "type": "string" },
+            { "id": "a2", "name": "title", "value": "={{ $json.body.title }}", "type": "string" },
+            { "id": "a3", "name": "description", "value": "={{ $json.body.description }}", "type": "string" },
+            { "id": "a4", "name": "reporter", "value": "={{ $json.body.reporter }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-parse",
+      "name": "解析需求字段",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [440, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"app_id\": \"REPLACE_APP_ID\",\n  \"app_secret\": \"REPLACE_APP_SECRET\"\n}",
+        "options": {}
+      },
+      "id": "node-token",
+      "name": "获取飞书Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://open.feishu.cn/open-apis/bitable/v1/apps/REPLACE_APP_TOKEN/tables/REPLACE_TABLE_ID/records/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $json.tenant_access_token }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"filter\": {\n    \"conjunction\": \"and\",\n    \"conditions\": [\n      { \"field_name\": \"project_id\", \"operator\": \"is\", \"value\": [\"{{ $('解析需求字段').item.json.project_id }}\"] }\n    ]\n  },\n  \"automatic_fields\": false\n}",
+        "options": {}
+      },
+      "id": "node-query-config",
+      "name": "查询项目配置(多维表格)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [840, 360]
+    },
+    {
+      "parameters": {
+        "jsType": "javaScript",
+        "jsCode": "// 从多维表格查询结果中取出该项目配置。\n// 飞书文本字段返回的是富文本数组，这里统一拍平成纯字符串。\nfunction flat(v) {\n  if (Array.isArray(v)) return v.map(s => s.text || s).join('');\n  if (v && typeof v === 'object') return v.text || JSON.stringify(v);\n  return v == null ? '' : String(v);\n}\n\nconst items = $json.data && $json.data.items;\nif (!items || items.length === 0) {\n  const pid = $('解析需求字段').item.json.project_id;\n  throw new Error(`配置表中未找到 project_id=${pid} 的配置`);\n}\nconst f = items[0].fields;\nconst req = $('解析需求字段').item.json;\nreturn [{ json: {\n  ...req,\n  project_name:   flat(f['project_name']),\n  eval_system:    flat(f['eval_system']),\n  effort_system:  flat(f['effort_system']),\n  model:          flat(f['model']),\n  pass_threshold: Number(flat(f['pass_threshold'])) || 70,\n  effort_baseline: flat(f['effort_baseline']),\n  feishu_webhook: flat(f['feishu_webhook']),\n  gitlab_project: flat(f['gitlab_project'])\n}}];"
+      },
+      "id": "node-extract-config",
+      "name": "提取配置字段",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1040, 360]
+    },
+    {
+      "parameters": { "model": "={{ $json.model }}", "options": {} },
+      "id": "node-eval-model",
+      "name": "评估模型",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [1240, 560],
+      "credentials": { "openAiApi": { "id": "REPLACE_CRED_LLM", "name": "私有化 LLM" } }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"passed\": true,\n  \"score\": 82,\n  \"missing\": [\"未说明目标用户量级\"],\n  \"reason\": \"需补充验收标准\"\n}"
+      },
+      "id": "node-eval-parser",
+      "name": "评估输出解析",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [1420, 560]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=需求标题：{{ $json.title }}\n需求描述：{{ $json.description }}\n评分 >= {{ $json.pass_threshold }} 且无致命缺失项才 passed=true。",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $json.eval_system }}\n严格按给定 JSON 结构输出，缺失项放入 missing 数组。"
+        }
+      },
+      "id": "node-eval-agent",
+      "name": "需求评估 Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [1260, 360]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
+          "conditions": [
+            { "id": "c1", "leftValue": "={{ $json.output.passed }}", "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-pass",
+      "name": "评估是否通过",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1580, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('提取配置字段').item.json.feishu_webhook }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"msg_type\": \"interactive\",\n  \"card\": {\n    \"header\": {\"title\": {\"tag\": \"plain_text\", \"content\": \"❌ 需求评估未通过\"}, \"template\": \"red\"},\n    \"elements\": [\n      {\"tag\": \"div\", \"text\": {\"tag\": \"lark_md\", \"content\": \"**需求：**{{ $('提取配置字段').item.json.title }}\\n**理由：**{{ $json.output.reason }}\"}},\n      {\"tag\": \"div\", \"text\": {\"tag\": \"lark_md\", \"content\": \"**需补充：**{{ ($json.output.missing || []).join('、') }}\"}}\n    ]\n  }\n}",
+        "options": {}
+      },
+      "id": "node-feishu-reject",
+      "name": "飞书通知-驳回",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1820, 560]
+    },
+    {
+      "parameters": { "model": "={{ $('提取配置字段').item.json.model }}", "options": {} },
+      "id": "node-effort-model",
+      "name": "工时模型",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [1820, 360],
+      "credentials": { "openAiApi": { "id": "REPLACE_CRED_LLM", "name": "私有化 LLM" } }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"total_person_days\": 12,\n  \"breakdown\": [{\"task\": \"前端\", \"days\": 4}],\n  \"risks\": [\"依赖外部支付接口\"],\n  \"suggested_sprint\": \"可排入下个迭代\"\n}"
+      },
+      "id": "node-effort-parser",
+      "name": "工时输出解析",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [2000, 360]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=需求已通过评估。\n标题：{{ $('提取配置字段').item.json.title }}\n描述：{{ $('提取配置字段').item.json.description }}\n评估结论：{{ JSON.stringify($json.output) }}\n请拆解任务并估算人天。",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $('提取配置字段').item.json.effort_system }}\n参考工时基准：{{ $('提取配置字段').item.json.effort_baseline }}。考虑前端/后端/测试/联调/风险缓冲。严格按 JSON 结构输出。"
+        }
+      },
+      "id": "node-effort-agent",
+      "name": "工时评估 Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [1840, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('提取配置字段').item.json.feishu_webhook }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"msg_type\": \"interactive\",\n  \"card\": {\n    \"header\": {\"title\": {\"tag\": \"plain_text\", \"content\": \"🕒 工时评估完成，请项管确认\"}, \"template\": \"orange\"},\n    \"elements\": [\n      {\"tag\": \"div\", \"text\": {\"tag\": \"lark_md\", \"content\": \"**需求：**{{ $('提取配置字段').item.json.title }}\\n**预估工时：**{{ $json.output.total_person_days }} 人天\\n**排期：**{{ $json.output.suggested_sprint }}\"}},\n      {\"tag\": \"div\", \"text\": {\"tag\": \"lark_md\", \"content\": \"**风险：**{{ ($json.output.risks || []).join('、') }}\"}},\n      {\"tag\": \"action\", \"actions\": [\n        {\"tag\": \"button\", \"text\": {\"tag\": \"plain_text\", \"content\": \"✅ 确认排期\"}, \"type\": \"primary\", \"url\": \"={{ $execution.resumeUrl }}?action=approve\"},\n        {\"tag\": \"button\", \"text\": {\"tag\": \"plain_text\", \"content\": \"❌ 驳回重评\"}, \"type\": \"danger\", \"url\": \"={{ $execution.resumeUrl }}?action=reject\"}\n      ]}\n    ]\n  }\n}",
+        "options": {}
+      },
+      "id": "node-feishu-approve-card",
+      "name": "飞书-工时审批卡片",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2080, 200]
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "id": "node-wait",
+      "name": "等待项管审批",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2320, 200],
+      "webhookId": "pm-approval-resume"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
+          "conditions": [
+            { "id": "c2", "leftValue": "={{ $json.query.action }}", "rightValue": "approve",
+              "operator": { "type": "string", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-approve",
+      "name": "审批是否通过",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2540, 200]
+    },
+    {
+      "parameters": {
+        "resource": "issue",
+        "operation": "createComment",
+        "owner": "={{ $('提取配置字段').item.json.gitlab_project }}",
+        "body": "=✅ 工时已由项管确认\\n预估工时：{{ $('工时评估 Agent').item.json.output.total_person_days }} 人天\\n排期建议：{{ $('工时评估 Agent').item.json.output.suggested_sprint }}"
+      },
+      "id": "node-gitlab",
+      "name": "GitLab 回写-确认",
+      "type": "n8n-nodes-base.gitlab",
+      "typeVersion": 1,
+      "position": [2780, 100],
+      "credentials": { "gitlabApi": { "id": "REPLACE_CRED_GITLAB", "name": "私有 GitLab" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('提取配置字段').item.json.feishu_webhook }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"msg_type\": \"text\",\n  \"content\": {\"text\": \"❌ 项管驳回了「{{ $('提取配置字段').item.json.title }}」的工时排期，请 PM 重新评估\"}\n}",
+        "options": {}
+      },
+      "id": "node-feishu-reapprove",
+      "name": "飞书通知-审批驳回",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2780, 300]
+    }
+  ],
+  "connections": {
+    "Webhook 接收需求": { "main": [[{ "node": "解析需求字段", "type": "main", "index": 0 }]] },
+    "解析需求字段": { "main": [[{ "node": "获取飞书Token", "type": "main", "index": 0 }]] },
+    "获取飞书Token": { "main": [[{ "node": "查询项目配置(多维表格)", "type": "main", "index": 0 }]] },
+    "查询项目配置(多维表格)": { "main": [[{ "node": "提取配置字段", "type": "main", "index": 0 }]] },
+    "提取配置字段": { "main": [[{ "node": "需求评估 Agent", "type": "main", "index": 0 }]] },
+    "评估模型": { "ai_languageModel": [[{ "node": "需求评估 Agent", "type": "ai_languageModel", "index": 0 }]] },
+    "评估输出解析": { "ai_outputParser": [[{ "node": "需求评估 Agent", "type": "ai_outputParser", "index": 0 }]] },
+    "需求评估 Agent": { "main": [[{ "node": "评估是否通过", "type": "main", "index": 0 }]] },
+    "评估是否通过": {
+      "main": [
+        [{ "node": "工时评估 Agent", "type": "main", "index": 0 }],
+        [{ "node": "飞书通知-驳回", "type": "main", "index": 0 }]
+      ]
+    },
+    "工时模型": { "ai_languageModel": [[{ "node": "工时评估 Agent", "type": "ai_languageModel", "index": 0 }]] },
+    "工时输出解析": { "ai_outputParser": [[{ "node": "工时评估 Agent", "type": "ai_outputParser", "index": 0 }]] },
+    "工时评估 Agent": { "main": [[{ "node": "飞书-工时审批卡片", "type": "main", "index": 0 }]] },
+    "飞书-工时审批卡片": { "main": [[{ "node": "等待项管审批", "type": "main", "index": 0 }]] },
+    "等待项管审批": { "main": [[{ "node": "审批是否通过", "type": "main", "index": 0 }]] },
+    "审批是否通过": {
+      "main": [
+        [{ "node": "GitLab 回写-确认", "type": "main", "index": 0 }],
+        [{ "node": "飞书通知-审批驳回", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}
