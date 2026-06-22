@@ -1,11 +1,12 @@
 import operator
+from http.client import responses
 from typing import Annotated, NotRequired, TypedDict
 
 from langchain_core.messages import HumanMessage, MessageLikeRepresentation
 from langchain_core.tools import tool
 
 # 复用 research_agent 中已编译好的 researcher 子图
-from research_agent import researcher_graph
+from research_agent import researcher_graph, think_tool, get_model, MAX_STRUCTURED_OUTPUT_RETRIES
 
 
 # 覆盖 reducer
@@ -48,4 +49,58 @@ async def ConductResearch(research_topic: str) -> dict:
     return {
         "compressed_research": result.get("compressed_research", "Error in research"),
         "raw_notes": result.get("raw_notes", [])
+    }
+
+
+# 提示词
+lead_researcher_prompt = """你是一名研究主管（research supervisor）。你的工作是通过调用 "ConductResearch" 工具来开展研究。
+
+  <Task>
+  调用 "ConductResearch" 工具来委派研究任务。当你对研究结果感到满意时，调用 "ResearchComplete"。
+  </Task>
+
+  <Available Tools>
+  1. **ConductResearch**：将研究任务委派给专门的子 Agent（sub-agent）
+  2. **ResearchComplete**：表示研究已完成
+  3. **think_tool**：用于反思与策略规划
+
+  **关键：在调用 ConductResearch 之前先用 think_tool 做规划，调用之后再用它评估进展。**
+  </Available Tools>
+
+  <Instructions>
+  像一名研究经理（research manager）那样思考：
+
+  1. **仔细阅读问题** —— 究竟需要哪些具体信息？
+  2. **决定如何委派** —— 是否可以同时探索多个相互独立的角度？
+  3. **每次调用 ConductResearch 之后都要评估** —— 我掌握的信息够了吗？还缺什么？
+  </Instructions>
+
+  <Hard Limits>
+  - **限制工具调用次数** —— 如果找不到合适的信息源，在 {max_researcher_iterations} 次工具调用后停止
+  - **每轮迭代最多 {max_concurrent_research_units} 个并行 Agent**
+  </Hard Limits>
+
+  <Scaling Rules>
+  **简单查询** —— 使用单个子 Agent
+  **对比类任务** —— 为每个待对比的对象分配一个子 Agent
+  **重要**：调用 ConductResearch 时，要提供完整、可独立执行的指令
+  </Scaling Rules>
+  """
+
+
+# Supervisor agent
+async def supervisor(state: SupervisorState, config):
+    """委派研究任务的 Supervisor agent"""
+    lead_researcher_tools = [ConductResearch, ConductResearch, think_tool]
+
+    research_model = (
+        get_model().bind_tools(lead_researcher_tools).with_retry(stop_after_attempt=MAX_STRUCTURED_OUTPUT_RETRIES)
+    )
+
+    supervisor_messages = state.get("supervisor_messages", [])
+    response = await research_model.ainvoke(supervisor_messages)
+
+    return {
+        "supervisor_messages": [response],
+        "research_iterations": state.get("research_iterations", 0) + 1
     }
