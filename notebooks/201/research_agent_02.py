@@ -45,4 +45,7 @@ async def ConductResearch(research_topic: str) -> dict:
             "tool_call_iterations": 0,
         }
     )
-    return result
+    return {
+        "compressed_research": result.get("compressed_research", "Error in research"),
+        "raw_notes": result.get("raw_notes", [])
+    }
