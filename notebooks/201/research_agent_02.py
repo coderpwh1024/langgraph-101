@@ -2,7 +2,7 @@ import operator
 from http.client import responses
 from typing import Annotated, NotRequired, TypedDict
 
-from langchain_core.messages import HumanMessage, MessageLikeRepresentation
+from langchain_core.messages import HumanMessage, MessageLikeRepresentation, filter_messages
 from langchain_core.tools import tool
 
 # 复用 research_agent 中已编译好的 researcher 子图
@@ -104,3 +104,10 @@ async def supervisor(state: SupervisorState, config):
         "supervisor_messages": [response],
         "research_iterations": state.get("research_iterations", 0) + 1
     }
+
+
+# 笔记提取
+def extract_tool_content(messages):
+    """从工具调用消息中提取笔记"""
+    return [tool_msg.content for tool_msg in filter_messages(messages, include_types="tool")]
+
