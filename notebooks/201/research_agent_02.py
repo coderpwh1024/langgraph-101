@@ -1,12 +1,29 @@
+import asyncio
 import operator
-from http.client import responses
-from typing import Annotated, NotRequired, TypedDict
+from typing import Annotated, Literal, NotRequired, TypedDict
 
-from langchain_core.messages import HumanMessage, MessageLikeRepresentation, filter_messages
+from langchain_core.messages import (
+    HumanMessage,
+    MessageLikeRepresentation,
+    ToolMessage,
+    filter_messages,
+)
 from langchain_core.tools import tool
+from langgraph.graph import END
+from langgraph.types import Command
 
-# 复用 research_agent 中已编译好的 researcher 子图
-from research_agent import researcher_graph, think_tool, get_model, MAX_STRUCTURED_OUTPUT_RETRIES
+# 复用 research_agent 中已编译好的 researcher 子图与共享工具
+from research_agent import (
+    MAX_STRUCTURED_OUTPUT_RETRIES,
+    ResearchComplete,
+    get_model,
+    researcher_graph,
+    think_tool,
+)
+
+# 全局配置
+MAX_RESEARCHER_ITERATIONS = 3  # supervisor 委派研究的最大轮次
+MAX_CONCURRENT_RESEARCH_UNITS = 3  # 每轮最多并行的 researcher 子 Agent 数
 
 
 # 覆盖 reducer
@@ -91,7 +108,7 @@ lead_researcher_prompt = """你是一名研究主管（research supervisor）。
 # Supervisor agent
 async def supervisor(state: SupervisorState, config):
     """委派研究任务的 Supervisor agent"""
-    lead_researcher_tools = [ConductResearch, ConductResearch, think_tool]
+    lead_researcher_tools = [ConductResearch, ResearchComplete, think_tool]
 
     research_model = (
         get_model().bind_tools(lead_researcher_tools).with_retry(stop_after_attempt=MAX_STRUCTURED_OUTPUT_RETRIES)
@@ -110,4 +127,7 @@ async def supervisor(state: SupervisorState, config):
 def extract_tool_content(messages):
     """从工具调用消息中提取笔记"""
     return [tool_msg.content for tool_msg in filter_messages(messages, include_types="tool")]
+
+
+
 
