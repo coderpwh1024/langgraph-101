@@ -129,5 +129,14 @@ def extract_tool_content(messages):
     return [tool_msg.content for tool_msg in filter_messages(messages, include_types="tool")]
 
 
+async def supervisor_tools(state: SupervisorState, config) -> Command[Literal["supervisor", "__end__"]]:
+    """执行由 supervisor（监督者）发起的工具调用"""
 
+    supervisor_messages = state.get("supervisor_messages", [])
+    research_iterations = state.get("research_iterations", 0)
+    most_recent_message = supervisor_messages[-1]
 
+    exceeded_iterations = research_iterations > MAX_RESEARCHER_ITERATIONS
+    no_tool_calls = not most_recent_message.tool_calls
+
+    research_complete = any(tc["name"] == "ResearchComplete" for tc in most_recent_message.tool_calls)
