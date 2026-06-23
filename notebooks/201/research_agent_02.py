@@ -140,3 +140,29 @@ async def supervisor_tools(state: SupervisorState, config) -> Command[Literal["s
     no_tool_calls = not most_recent_message.tool_calls
 
     research_complete = any(tc["name"] == "ResearchComplete" for tc in most_recent_message.tool_calls)
+
+    if exceeded_iterations or no_tool_calls or research_complete:
+        return Command(
+            goto=END,
+            update={
+                "notes": extract_tool_content(supervisor_messages),
+                "research_brief": state.get("research_brief", "")
+            }
+        )
+
+    all_tool_messages = []
+    update_payload = {"supervisor_messages": []}
+
+    for tc in most_recent_message.tool_calls:
+        if tc["name"] =="think_tool":
+            all_tool_messages.append(
+                ToolMessage(content=f"反思已记录:{tc['args']['reflection']}"),
+                name="think_tool",
+                tool_call_id=tc["id"]
+            )
+
+    conduct_research_calls=[ tc for tc in most_recent_message.tool_calls if tc["name"] =="ConductResearch"]
+
+
+
+
