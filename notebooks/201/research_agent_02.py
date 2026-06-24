@@ -9,9 +9,11 @@ from langchain_core.messages import (
     filter_messages,
 )
 from langchain_core.tools import tool
-from langgraph.graph import END
+from langgraph.constants import START
+from langgraph.graph import END, StateGraph
 from langgraph.types import Command
 
+from notebooks.utils.utils import show_graph
 # 复用 research_agent 中已编译好的 researcher 子图与共享工具
 from research_agent import (
     MAX_STRUCTURED_OUTPUT_RETRIES,
@@ -129,6 +131,7 @@ def extract_tool_content(messages):
     return [tool_msg.content for tool_msg in filter_messages(messages, include_types="tool")]
 
 
+# 构建 Supervisor工具
 async def supervisor_tools(state: SupervisorState, config) -> Command[Literal["supervisor", "__end__"]]:
     """执行由 supervisor（监督者）发起的工具调用"""
 
@@ -163,49 +166,61 @@ async def supervisor_tools(state: SupervisorState, config) -> Command[Literal["s
                 )
             )
 
-    conduct_research_calls=[ tc for tc in most_recent_message.tool_calls if tc["name"] =="ConductResearch"]
+    conduct_research_calls = [tc for tc in most_recent_message.tool_calls if tc["name"] == "ConductResearch"]
 
     if conduct_research_calls:
         try:
-            allowed_calls =conduct_research_calls[:MAX_CONCURRENT_RESEARCH_UNITS]
-            overflow_calls=conduct_research_calls[MAX_CONCURRENT_RESEARCH_UNITS:]
+            allowed_calls = conduct_research_calls[:MAX_CONCURRENT_RESEARCH_UNITS]
+            overflow_calls = conduct_research_calls[MAX_CONCURRENT_RESEARCH_UNITS:]
 
-            research_task=[ConductResearch.ainvoke(tc["args"]) for tc in allowed_calls]
+            research_task = [ConductResearch.ainvoke(tc["args"]) for tc in allowed_calls]
 
             tool_results = await asyncio.gather(*research_task)
 
-            for observation_dict,tc in zip(tool_results,allowed_calls):
-                all_tool_messages.append(ToolMessage(content=observation_dict.get("compressed_research","Error in research"),
-                                                     name=tc["name"],
-                                                     tool_call_id=tc["id"]
-               ))
+            for observation_dict, tc in zip(tool_results, allowed_calls):
+                all_tool_messages.append(
+                    ToolMessage(content=observation_dict.get("compressed_research", "Error in research"),
+                                name=tc["name"],
+                                tool_call_id=tc["id"]
+                                ))
 
             for overflow_call in overflow_calls:
-                all_tool_messages.append(ToolMessage(content=f"错误:已超过允许的最大并发数量({MAX_CONCURRENT_RESEARCH_UNITS})",
-                                                     name="ConductResearch",
-                                                     tool_call_id=overflow_call["id"]
-               ))
+                all_tool_messages.append(
+                    ToolMessage(content=f"错误:已超过允许的最大并发数量({MAX_CONCURRENT_RESEARCH_UNITS})",
+                                name="ConductResearch",
+                                tool_call_id=overflow_call["id"]
+                                ))
 
-            raw_notes_concat="\n".join([
-                "\n".join(obs.get("raw_notes",[]))
+            raw_notes_concat = "\n".join([
+                "\n".join(obs.get("raw_notes", []))
                 for obs in tool_results
             ])
             if raw_notes_concat:
-                update_payload["raw_notes"]=[raw_notes_concat]
+                update_payload["raw_notes"] = [raw_notes_concat]
         except Exception as e:
-             return Command(
-                 goto=END,
-                 update={
-                     "notes": extract_tool_content(supervisor_messages),
-                     "research_brief": state.get("research_brief", "")
-                 }
-             )
+            return Command(
+                goto=END,
+                update={
+                    "notes": extract_tool_content(supervisor_messages),
+                    "research_brief": state.get("research_brief", "")
+                }
+            )
 
-    update_payload["supervisor_messages"]=all_tool_messages
+    update_payload["supervisor_messages"] = all_tool_messages
     return Command(goto="supervisor", update=update_payload)
 
 
+# 构建 Supervisor 状态图
+supervisor_builder = StateGraph(SupervisorState)
 
+# 添加node
+supervisor_builder.add_node(supervisor, "supervisor")
+supervisor_builder.add_node(supervisor_tools, "supervisor_tools")
 
+# 添加 edge
+supervisor_builder.add_edge(START, "supervisor")
+supervisor_builder.add_edge("supervisor", "supervisor_tools")
 
-
+# 编译状态图
+supervisor_graph =supervisor_builder.compile()
+show_graph(supervisor_graph,xray= True)
