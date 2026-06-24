@@ -20,7 +20,7 @@ from research_agent import (
     ResearchComplete,
     get_model,
     researcher_graph,
-    think_tool,
+    think_tool, get_today_str,
 )
 
 # 全局配置
@@ -222,5 +222,14 @@ supervisor_builder.add_edge(START, "supervisor")
 supervisor_builder.add_edge("supervisor", "supervisor_tools")
 
 # 编译状态图
-supervisor_graph =supervisor_builder.compile()
-show_graph(supervisor_graph,xray= True)
+supervisor_graph = supervisor_builder.compile()
+show_graph(supervisor_graph, xray=True)
+
+research_brief = "推荐一些纽约市（NYC）的中餐厅和印度餐厅"
+
+# 构建系统提示词等
+supervisor_system_prompt = lead_researcher_prompt.format(
+    date=get_today_str(),
+    max_concurrent_research_units=MAX_CONCURRENT_RESEARCH_UNITS,
+    max_researcher_iterations=MAX_RESEARCHER_ITERATIONS,
+)
