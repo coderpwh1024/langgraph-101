@@ -163,6 +163,47 @@ async def supervisor_tools(state: SupervisorState, config) -> Command[Literal["s
 
     conduct_research_calls=[ tc for tc in most_recent_message.tool_calls if tc["name"] =="ConductResearch"]
 
+    if conduct_research_calls:
+        try:
+            allowed_calls =conduct_research_calls[:MAX_CONCURRENT_RESEARCH_UNITS]
+            overflow_calls=conduct_research_calls[MAX_CONCURRENT_RESEARCH_UNITS:]
+
+            research_task=[ConductResearch.ainvoke(tc["args"]) for tc in allowed_calls]
+
+            tool_results = await asyncio.gather(*research_task)
+
+            for observation_dict,tc in zip(tool_results,allowed_calls):
+                all_tool_messages.append(ToolMessage(content=observation_dict.get("compressed_research","Error in research"),
+                                                     name=tc["name"],
+                                                     tool_call_id=tc["id"]
+               ))
+
+            for overflow_call in overflow_calls:
+                all_tool_messages.append(ToolMessage(content=f"错误:已超过允许的最大并发数量({MAX_CONCURRENT_RESEARCH_UNITS})",
+                                                     name="ConductResearch",
+                                                     tool_call_id=overflow_call["id"]
+               ))
+
+            raw_notes_concat="\n".join([
+                "\n".join(obs.get("raw_notes",[]))
+                for obs in tool_results
+            ])
+            if raw_notes_concat:
+                update_payload["raw_notes"]=[raw_notes_concat]
+        except Exception as e:
+             return Command(
+                 goto=END,
+                 update={
+                     "notes": extract_tool_content(supervisor_messages),
+                     "research_brief": state.get("research_brief", "")
+                 }
+             )
+
+    update_payload["supervisor_messages"]=all_tool_messages
+    return Command(goto="supervisor", update=update_payload)
+
+
+
 
 
 
