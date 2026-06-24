@@ -154,11 +154,13 @@ async def supervisor_tools(state: SupervisorState, config) -> Command[Literal["s
     update_payload = {"supervisor_messages": []}
 
     for tc in most_recent_message.tool_calls:
-        if tc["name"] =="think_tool":
+        if tc["name"] == "think_tool":
             all_tool_messages.append(
-                ToolMessage(content=f"反思已记录:{tc['args']['reflection']}"),
-                name="think_tool",
-                tool_call_id=tc["id"]
+                ToolMessage(
+                    content=f"反思已记录:{tc['args']['reflection']}",
+                    name="think_tool",
+                    tool_call_id=tc["id"],
+                )
             )
 
     conduct_research_calls=[ tc for tc in most_recent_message.tool_calls if tc["name"] =="ConductResearch"]
