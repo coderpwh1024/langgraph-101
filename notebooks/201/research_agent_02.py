@@ -245,11 +245,17 @@ initial_state={
     "raw_notes":[]
 }
 
-result = await supervisor_graph.ainvoke(initial_state)
 
-print("="*60)
-print("监督者消息历史")
-print("="*60)
-for i,note in enumerate(result["notes"],1):
-    print(f"\n --- 搜索发现{i} ---")
-    print(note[:500]+"..." if len(note)>500 else note)
+async  def main()->None:
+    """运行 supervisor 图并打印研究笔记"""
+    result = await supervisor_graph.ainvoke(initial_state)
+    print("=" * 60)
+    print("监督者消息历史")
+    print("=" * 60)
+    for i, note in enumerate(result["notes"], 1):
+        print(f"\n --- 搜索发现{i} ---")
+        print(note[:500] + "..." if len(note) > 500 else note)
+
+if __name__=="__main__":
+    asyncio.run(main())
+
