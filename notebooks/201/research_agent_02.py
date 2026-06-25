@@ -214,8 +214,8 @@ async def supervisor_tools(state: SupervisorState, config) -> Command[Literal["s
 supervisor_builder = StateGraph(SupervisorState)
 
 # 添加node
-supervisor_builder.add_node(supervisor, "supervisor")
-supervisor_builder.add_node(supervisor_tools, "supervisor_tools")
+supervisor_builder.add_node("supervisor",supervisor)
+supervisor_builder.add_node("supervisor_tools",supervisor_tools)
 
 # 添加 edge
 supervisor_builder.add_edge(START, "supervisor")
