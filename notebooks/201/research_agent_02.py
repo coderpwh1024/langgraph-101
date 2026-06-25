@@ -234,6 +234,7 @@ supervisor_system_prompt = lead_researcher_prompt.format(
     max_researcher_iterations=MAX_RESEARCHER_ITERATIONS,
 )
 
+# 初始化状态
 initial_state={
     "supervisor_messages":[
         SystemMessage(content=supervisor_system_prompt),
