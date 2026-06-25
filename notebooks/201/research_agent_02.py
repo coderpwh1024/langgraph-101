@@ -238,5 +238,18 @@ initial_sate={
     "supervisor_messages":[
         SystemMessage(content=supervisor_system_prompt),
         HumanMessage(content=research_brief)
-    ]
+    ],
+    "research_brief":research_brief,
+    "research_iterations":0,
+    "notes":[],
+    "raw_notes":[]
 }
+
+result = await supervisor_graph.ainvoke(initial_sate)
+
+print("="*60)
+print("监督者消息历史")
+print("="*60)
+for i,note in enumerate(result["notes"],1):
+    print("f\n --- 搜索发现{i} ---")
+    print(note[:500]+"..." if len(note)>500 else note)
