@@ -178,6 +178,9 @@ LangGraph 的状态 / 检查点是**有状态、有时序、会踩隐蔽坑**的
 | **循环与终止条件** | 把流程当成直线，漏掉「绕回」箭头 | 列全所有 END 条件，缺一个就可能死循环（如漏掉「超最大迭代次数」这根保险丝） |
 | **`asyncio.gather` 并行** | 以为列表推导就开始跑了 | `[coro for ...]` 只是造协程**没启动**；`await gather(*tasks)` 才**同时点火**。并行省的是 I/O「干等」的时间 |
 | **reducer（如 `override_reducer`）** | 以为跟「内容相不相同」有关 | reducer = **状态合并规则**。默认 `add` 只能往上摞、删不掉旧的；`override_reducer` 给一个开关：平时追加，递进 `{"type":"override"}` 就能**整个推倒重来** |
+| **图当工具用（嵌套子图）** | 把内外两层图一起想，认知爆炸 | 内层子图（如 `researcher_graph`）当**黑盒**：只记「输入主题 → 输出 compressed_research」，别管内部 |
+| **`interrupt` / HITL** | 不懂图为何能「停下等人」 | 图能在某节点**暂停**、把控制权交回人类、人答完从断点**续跑**。记「能暂停、能等人、能续上」 |
+| **`checkpointer` 持久化** | 不懂状态怎么跨次保留 | 状态**存盘**，用同一个 `thread_id` 能**接着上次**跑，而非从头来。记「状态存盘 + 凭票续跑」 |
 
 ---
 
@@ -191,6 +194,66 @@ LangGraph 的状态 / 检查点是**有状态、有时序、会踩隐蔽坑**的
 > 累积的研究笔记靠一个**带开关的合并规则**管理——平时只往上追加，必要时能整个推倒重来。
 
 对照自己的复述，差距通常就在**「循环」和「并行」这两个动态特征**上。
+
+---
+
+## 十、`notebooks/201` 学习路线图
+
+### 1. 章节地图与「低层 ↔ 高层」对应关系
+
+201 这一章的核心规律：**很多概念会出现两遍——先用原始 LangGraph「手搓」一遍（低层），
+再用 `deepagents` 框架「封装版」见一遍（高层）。两者不是线性依赖，是同一概念的两个高度。**
+
+| 概念 | 低层手搓版 | 高层封装版 |
+| --- | --- | --- |
+| 子 Agent 委派 | research_agent：supervisor 调 `ConductResearch` | deep_agents：`task()` 工具 |
+| 规划 / 反思 | research_agent：`think_tool` | deep_agents：`write_todos` |
+| 上下文压缩 | research_agent：`compress_research` 节点 | deep_agents：自动上下文管理 |
+| 人在环中（HITL） | research_agent Part 3：`interrupt` | deep_agents 第 7 节 Human-in-the-Loop |
+| 持久化 / 记忆 | research_agent Part 3：`checkpointer` | deep_agents 第 8 节 Long-Term Memory |
+
+> 学习启示：**用高层抽象去反向巩固刚学的低层概念，是很高效的学法。**
+> 每用到一个框架现成能力，回想一句「这玩意儿低层是怎么手搓的」，两章就串成一条线。
+
+### 2. research_agent.ipynb 三个 Part
+
+| Part | 标题 | 教什么 | 性质 |
+| --- | --- | --- | --- |
+| Part 1 | 单 researcher Agent | State / tool / node / ReAct + 联网搜索 | 基础 |
+| Part 2 | supervisor Agent | 多 Agent 并行委派、层级化设计、图套图 | 难度跳变点 |
+| Part 3 | 进阶（HITL + 上下文管理） | `interrupt` 中断恢复、`checkpointer` 持久化、总装 | 一半新原语，一半收尾 |
+
+> **难度跳变发生在 Part 2**：从「单 Agent」变成「多 Agent 套娃」，一次性叠加
+> 异步 / `asyncio.gather` 并行 / `@tool` 循环 / 图当工具 / `Command`+`override_reducer` 共 5 个新概念。
+> 感觉变难是正常的，不是你变笨了。
+
+### 3. 推荐学习顺序与「可以欠着」的清单
+
+**应对策略：分层啃，别想一口吞两层。**
+
+1. 先把 `research_agent.py`（内层 researcher 图）当**独立单 Agent** 吃透。
+2. 吃透后把 `researcher_graph` 当**黑盒**，再读 `research_agent_02.py` 的 supervisor 层。
+3. Part 3 **别死磕**：花 30 分钟「概念级扫读」，只搞懂 `interrupt`（中断恢复）和 `checkpointer`（状态存盘）**是什么**。
+4. 然后切去 **deep_agents**，在第 7、8 节回头印证 HITL / 持久化。
+
+**可以先欠着、标记「以后回来深挖」的底层细节**（每个都有 deep_agents 高层版兜底，不会真漏掉）：
+
+- `override_reducer` 各分支的精确行为
+- `asyncio.gather` 的精确时序
+- Part 3 里 `interrupt` / `Command(resume=...)` / `checkpointer` 的精确写法
+
+**必须先抓牢、不能欠的**（黑盒级心智模型）：
+
+> supervisor 在一个**循环**里，把研究任务**派**给子 Agent，子 Agent 是张**独立的图**，
+> 跑完**绕回来**，直到满足终止条件。
+
+### 4. 「切换到 deep_agents」算不算逃避？
+
+不算。完成 research_agent 的 Part 1、2 后——底层引擎已看过一遍。
+这时去 deep_agents 是「**已经看过引擎盖里面，再去学怎么开成品车，回头还会更懂引擎**」。
+切之前确保上面那段「黑盒级心智模型」能复述即可，底层细节欠着不挡路。
+
+> ⚠️ 防止变成「只会调包」：用框架现成能力时，每次回想「低层怎么手搓的」（见本节表 1）。
 
 ---
 
