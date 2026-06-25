@@ -6,7 +6,7 @@ from langchain_core.messages import (
     HumanMessage,
     MessageLikeRepresentation,
     ToolMessage,
-    filter_messages,
+    filter_messages, SystemMessage,
 )
 from langchain_core.tools import tool
 from langgraph.constants import START
@@ -233,3 +233,10 @@ supervisor_system_prompt = lead_researcher_prompt.format(
     max_concurrent_research_units=MAX_CONCURRENT_RESEARCH_UNITS,
     max_researcher_iterations=MAX_RESEARCHER_ITERATIONS,
 )
+
+initial_sate={
+    "supervisor_messages":[
+        SystemMessage(content=supervisor_system_prompt),
+        HumanMessage(content=research_brief)
+    ]
+}
