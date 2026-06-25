@@ -251,5 +251,5 @@ print("="*60)
 print("监督者消息历史")
 print("="*60)
 for i,note in enumerate(result["notes"],1):
-    print("f\n --- 搜索发现{i} ---")
+    print(f"\n --- 搜索发现{i} ---")
     print(note[:500]+"..." if len(note)>500 else note)
