@@ -234,7 +234,7 @@ supervisor_system_prompt = lead_researcher_prompt.format(
     max_researcher_iterations=MAX_RESEARCHER_ITERATIONS,
 )
 
-initial_sate={
+initial_state={
     "supervisor_messages":[
         SystemMessage(content=supervisor_system_prompt),
         HumanMessage(content=research_brief)
@@ -245,7 +245,7 @@ initial_sate={
     "raw_notes":[]
 }
 
-result = await supervisor_graph.ainvoke(initial_sate)
+result = await supervisor_graph.ainvoke(initial_state)
 
 print("="*60)
 print("监督者消息历史")
