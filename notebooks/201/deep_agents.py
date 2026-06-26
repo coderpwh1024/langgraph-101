@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 
 from deepagents import create_deep_agent
-from deepagents.backends import FilesystemBackend
+from deepagents.backends import FilesystemBackend, CompositeBackend, StateBackend
 import tempfile
 import os
 from langchain_core.tools import tool
@@ -187,46 +187,90 @@ sandbox_dir = tempfile.mktemp(prefix="deepagents_sandbox_")
 print(f"沙盒目录:`{sandbox_dir}`")
 
 # 创建文件系统存储
-fs_backend = FilesystemBackend(root_dir=sandbox_dir, virtual_mode=True)
+# fs_backend = FilesystemBackend(root_dir=sandbox_dir, virtual_mode=True)
+#
+# agent = create_deep_agent(
+#     model=model,
+#     tools=[tavily_search],
+#     system_prompt="""你作为一名乐于助人的研究助理,使用 tavily_search 在网络上查找信息,
+#       引用文件路径时，请使用反引号格式（如 `path/file.md`），而不要使用 Markdown 链接,必须用中文回答。
+#       """,
+#     backend=fs_backend
+# )
+#
+# config = {"configurable": {"thread_id": uuid7()}}
+#
+# result = agent.invoke(
+#     {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": "创建一个名为 notes.txt 的文件，内容为 'Hello from FilesystemBackend!'"
+#             }
+#         ]
+#     },
+#     config=config
+# )
+# print("\n")
+# print("文件系统的结果为:", result["messages"][-1].content)
+# print("\n")
+#
+# actual_path = os.path.join(sandbox_dir, "notes.txt")
+#
+# if os.path.exists(actual_path):
+#     with open(actual_path, "r") as f:
+#         print(f"\n✅ 文件已存在于盘，路径: `{actual_path}`")
+#         print(f"   Content: {f.read()}")
+# else:
+#     print(f"\n❌ 文件找不到 at: {actual_path}")
+#
+# print("\n")
+# print(f"文件在沙盒({sandbox_dir}):")
+# print("\n")
+#
+# for f in os.listdir(sandbox_dir):
+#     print(f" - {f}")
 
-agent = create_deep_agent(
+print("\n")
+print("\n")
+
+# 组合式
+# 工作目录
+workspace_dir = tempfile.mktemp(prefix="deepagents_workspace_")
+print(f"工作目录:`{workspace_dir}`")
+
+# 创建组合式存储
+composite_backend = CompositeBackend(
+    default=StateBackend,
+    routes={
+        "/workspace/": FilesystemBackend(root_dir=workspace_dir, virtual_mode=True),
+    }
+)
+
+agent_composite = create_deep_agent(
     model=model,
-    tools=[tavily_search],
-    system_prompt="""你作为一名乐于助人的研究助理,使用 tavily_search 在网络上查找信息,
-      引用文件路径时，请使用反引号格式（如 `path/file.md`），而不要使用 Markdown 链接,必须用中文回答。
-      """,
-    backend=fs_backend
+    system_prompt="""你是一个有帮助的助手。                                                                                                                                                               
+
+    存储规则：                                                                                                                                                                                            
+    - `/workspace/*` 下的文件会保存到真实磁盘（持久化）                                                                                                                                                   
+    - 其他所有文件都是临时的（线程结束时会消失）                                                                                                                                                          
+
+    引用文件路径时，请使用反引号格式，如 `path/file.md`，而不是 Markdown 链接。                                                                                                                           
+    """,
+    backend=composite_backend,
+    checkpointer=checkpointer
 )
 
 config = {"configurable": {"thread_id": uuid7()}}
 
-result = agent.invoke(
+result = agent_composite.invoke(
     {
         "messages": [
             {
                 "role": "user",
-                "content": "创建一个名为 notes.txt 的文件，内容为 'Hello from FilesystemBackend!'"
+                "content":""
             }
         ]
     },
     config=config
 )
-print("\n")
-print("文件系统的结果为:", result["messages"][-1].content)
-print("\n")
-
-actual_path = os.path.join(sandbox_dir, "notes.txt")
-
-if os.path.exists(actual_path):
-    with open(actual_path, "r") as f:
-        print(f"\n✅ 文件已存在于盘，路径: `{actual_path}`")
-        print(f"   Content: {f.read()}")
-else:
-    print(f"\n❌ 文件找不到 at: {actual_path}")
-
-print("\n")
-print(f"文件在沙盒({sandbox_dir}):")
-print("\n")
-
-for f in os.listdir(sandbox_dir):
-    print(f" - {f}")
