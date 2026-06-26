@@ -33,29 +33,29 @@ agent = create_deep_agent(
 )
 print("深入研究Agent创建成功")
 
-result = agent.invoke({
-    "messages": [
-        {"role": "user",
-         "content": "创建一个名为 notes.md 的文件，写入文本 'Hello from Deep Agents!'，然后读取该文件以确认内容"}
-    ]
-})
+# result = agent.invoke({
+#     "messages": [
+#         {"role": "user",
+#          "content": "创建一个名为 notes.md 的文件，写入文本 'Hello from Deep Agents!'，然后读取该文件以确认内容"}
+#     ]
+# })
 
-print("结果为:", result["messages"][-1].content)
-print("\n")
-print("\n" + "=" * 50)
-print("📁 虚拟文件系统（在内存中，不在磁盘上！）")
-print("\n" + "=" * 50)
+# print("结果为:", result["messages"][-1].content)
+# print("\n")
+# print("\n" + "=" * 50)
+# print("📁 虚拟文件系统（在内存中，不在磁盘上！）")
+# print("\n" + "=" * 50)
 
-for path, file_data in result.get("files", {}).items():
-    print(f"\n Path:'{path}'")
-    print(" " + "-" * 30)
-
-    if isinstance(file_data, dict) and "content" in file_data:
-        content = "\n".join(file_data["content"])
-        for line in content.split("\n"):
-            print(f" |{line}")
-    else:
-        print(f" |{file_data}")
+# for path, file_data in result.get("files", {}).items():
+#     print(f"\n Path:'{path}'")
+#     print(" " + "-" * 30)
+#
+#     if isinstance(file_data, dict) and "content" in file_data:
+#         content = "\n".join(file_data["content"])
+#         for line in content.split("\n"):
+#             print(f" |{line}")
+#     else:
+#         print(f" |{file_data}")
 
 print(
     "-------------------------------------------02-自定义工具-------------------------------------------------------")
