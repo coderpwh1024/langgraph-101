@@ -219,13 +219,13 @@ actual_path = os.path.join(sandbox_dir, "notes.txt")
 
 if os.path.exists(actual_path):
     with open(actual_path, "r") as f:
-        print(f"\n✅ File exists on disk at: `{actual_path}`")
+        print(f"\n✅ 文件已存在于盘，路径: `{actual_path}`")
         print(f"   Content: {f.read()}")
 else:
-    print(f"\n❌ File not found at: {actual_path}")
+    print(f"\n❌ 文件找不到 at: {actual_path}")
 
 print("\n")
-print(f"文件再沙盒({sandbox_dir}):")
+print(f"文件在沙盒({sandbox_dir}):")
 print("\n")
 
 for f in os.listdir(sandbox_dir):
