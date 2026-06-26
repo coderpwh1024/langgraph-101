@@ -241,7 +241,7 @@ print(f"工作目录:`{workspace_dir}`")
 
 # 创建组合式存储
 composite_backend = CompositeBackend(
-    default=StateBackend,
+    default=StateBackend(),
     routes={
         "/workspace/": FilesystemBackend(root_dir=workspace_dir, virtual_mode=True),
     }
@@ -255,7 +255,7 @@ agent_composite = create_deep_agent(
     - `/workspace/*` 下的文件会保存到真实磁盘（持久化）                                                                                                                                                   
     - 其他所有文件都是临时的（线程结束时会消失）                                                                                                                                                          
 
-    引用文件路径时，请使用反引号格式，如 `path/file.md`，而不是 Markdown 链接。                                                                                                                           
+    引用文件路径时，请使用反引号格式，如 `path/file.md`，而不是 Markdown 链接,必须用中文回答。                                                                                                                          
     """,
     backend=composite_backend,
     checkpointer=checkpointer
@@ -268,9 +268,22 @@ result = agent_composite.invoke(
         "messages": [
             {
                 "role": "user",
-                "content":""
+                "content":"""写入两个文件：                                                                                                                                                                                      
+  1. /workspace/persistent.txt，内容为「I will survive!」（我会活下来！）                                 
+  2. /scratch.txt，内容为「I am ephemeral」（我是临时的）                                                                                                                     
+然后列出这两个文件的位置。"""
             }
         ]
     },
     config=config
 )
+print("\n")
+print("返回的结果:",result["messages"][-1].content)
+print("\n")
+
+for path,data in result.get("files",{}).items():
+    if isinstance(data,dict) and "content" in data:
+        content="\n".join(data["content"])
+    else:
+        content=str(data)
+    print(f" `{path}`:{content}")
