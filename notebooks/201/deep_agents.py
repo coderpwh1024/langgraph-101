@@ -85,30 +85,30 @@ def tavily_search(query: str) -> str:
 
 
 # 创建 Agent
-agent = create_deep_agent(
-    model=model,
-    tools=[tavily_search],
-    system_prompt="""你是一名乐于助人的研究助理,使用 tavily_search 在网络上查找信息,                                                                   
-     引用文件路径时，请使用反引号格式（如 `path/file.md`），而不要使用 Markdown 链接,必须用中文回答。                       
-     """
-)
-print("\n")
-print("搜索工具创建成功")
+# agent = create_deep_agent(
+#     model=model,
+#     tools=[tavily_search],
+#     system_prompt="""你是一名乐于助人的研究助理,使用 tavily_search 在网络上查找信息,
+#      引用文件路径时，请使用反引号格式（如 `path/file.md`），而不要使用 Markdown 链接,必须用中文回答。
+#      """
+# )
+# print("\n")
+# print("搜索工具创建成功")
 
 
-result = agent.invoke(
-    {
-        "messages": [
-            {
-                "role": "user",
-                "content": "搜索一下2026世界杯梅西与阿根廷，并总结一下"
-            }
-        ]
-    }
-)
+# result = agent.invoke(
+#     {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": "搜索一下2026世界杯梅西与阿根廷，并总结一下"
+#             }
+#         ]
+#     }
+# )
 
-print("结果为:", result["messages"][-1].content)
+# print("结果为:", result["messages"][-1].content)
 
 
 print(
-    "-------------------------------------------02-自定义工具-------------------------------------------------------")
+    "-------------------------------------------03-Backends-------------------------------------------------------")
