@@ -1,8 +1,15 @@
 import sys
+import tempfile
 from pathlib import Path
 
 from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
+import tempfile
+import os
 from langchain_core.tools import tool
+from langgraph.checkpoint.memory import MemorySaver
+from langsmith import uuid7
+from numpy.testing.print_coercion_tables import print_new_cast_table
 from tavily import TavilyClient
 
 # 将 notebooks 目录加入 sys.path，以便脚本方式运行时能 import utils.*
@@ -112,3 +119,114 @@ def tavily_search(query: str) -> str:
 
 print(
     "-------------------------------------------03-Backends-------------------------------------------------------")
+
+# 状态存储(stateBackends)
+checkpointer = MemorySaver()
+# agent = create_deep_agent(
+#     model=model,
+#     tools=[tavily_search],
+#     system_prompt="""你作为一名乐于助人的研究助理,使用 tavily_search 在网络上查找信息,
+#       引用文件路径时，请使用反引号格式（如 `path/file.md`），而不要使用 Markdown 链接,必须用中文回答。
+#       """,
+#     checkpointer=checkpointer
+# )
+#
+# thread_id = str(uuid7())
+# config = {"configurable": {"thread_id": thread_id}}
+#
+# # 写的结果,利用状态存储
+# result = agent.invoke(
+#     {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": "创建一个名为 /research_notes.md 的文件，内容为「My research findings go here」（我的研究成果记录于此）"
+#             }
+#         ]
+#     },
+#     config=config
+# )
+#
+# print("文件状态:", list(result.get("files", {}).keys()))
+# print("\n")
+#
+# # 读的结果,利用状态存储
+# result = agent.invoke(
+#     {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": "Read the file `/research_notes.md`"
+#             }
+#         ]
+#     },
+#     config=config
+# )
+# print("结果为:", result["messages"][-1].content)
+
+# new_config = {"configurable": {"thread_id": uuid7()}};
+#
+# result = agent.invoke(
+#     {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": "List all files with ls /"
+#             }
+#         ]
+#     }
+#     , config=new_config
+# )
+# print("\n")
+# print("所有文件结果为:", result["messages"][-1].content)
+# print("\n")
+
+#### 文件系统
+print("\n")
+sandbox_dir = tempfile.mktemp(prefix="deepagents_sandbox_")
+print(f"沙盒目录:`{sandbox_dir}`")
+
+# 创建文件系统存储
+fs_backend = FilesystemBackend(root_dir=sandbox_dir, virtual_mode=True)
+
+agent = create_deep_agent(
+    model=model,
+    tools=[tavily_search],
+    system_prompt="""你作为一名乐于助人的研究助理,使用 tavily_search 在网络上查找信息,
+      引用文件路径时，请使用反引号格式（如 `path/file.md`），而不要使用 Markdown 链接,必须用中文回答。
+      """,
+    backend=fs_backend
+)
+
+config = {"configurable": {"thread_id": uuid7()}}
+
+result = agent.invoke(
+    {
+        "messages": [
+            {
+                "role": "user",
+                "content": "创建一个名为 notes.txt 的文件，内容为 'Hello from FilesystemBackend!'"
+            }
+        ]
+    },
+    config=config
+)
+print("\n")
+print("文件系统的结果为:", result["messages"][-1].content)
+print("\n")
+
+actual_path = os.path.join(sandbox_dir, "notes.txt")
+
+if os.path.exists(actual_path):
+    with open(actual_path, "r") as f:
+        print(f"\n✅ File exists on disk at: `{actual_path}`")
+        print(f"   Content: {f.read()}")
+else:
+    print(f"\n❌ File not found at: {actual_path}")
+
+print("\n")
+print(f"文件再沙盒({sandbox_dir}):")
+print("\n")
+
+for f in os.listdir(sandbox_dir):
+    print(f" - {f}")
