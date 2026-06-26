@@ -60,6 +60,7 @@ print("深入研究Agent创建成功")
 print(
     "-------------------------------------------02-自定义工具-------------------------------------------------------")
 
+# 初始化 TavilyClient 搜索
 tavily_client = TavilyClient()
 
 
@@ -67,9 +68,10 @@ tavily_client = TavilyClient()
 @tool(parse_docstring=True)
 def tavily_search(query: str) -> str:
     """在网络上搜索给定查询的相关信息。
-     Args:
-         query: 要执行的搜索查询（search query）。
-     """
+
+    Args:
+        query: 要执行的搜索查询（search query）。
+    """
     search_results = tavily_client.search(query, max_results=3, topic="general")
     result_texts = []
 
@@ -99,7 +101,7 @@ result = agent.invoke(
         "messages": [
             {
                 "role": "user",
-                "content": " 搜索有关 LangGraph 的信息，并总结你的发现"
+                "content": "搜索一下2026世界杯梅西与阿根廷，并总结一下"
             }
         ]
     }
