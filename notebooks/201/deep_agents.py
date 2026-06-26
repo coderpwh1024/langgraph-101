@@ -3,9 +3,12 @@ import tempfile
 from pathlib import Path
 
 from deepagents import create_deep_agent
-from deepagents.backends import FilesystemBackend, CompositeBackend, StateBackend
+from deepagents.backends import FilesystemBackend, CompositeBackend, StateBackend, StoreBackend
 import tempfile
+import shutil
 import os
+
+from langchain_core.stores import InMemoryStore
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 from langsmith import uuid7
@@ -263,27 +266,47 @@ agent_composite = create_deep_agent(
 
 config = {"configurable": {"thread_id": uuid7()}}
 
-result = agent_composite.invoke(
-    {
-        "messages": [
-            {
-                "role": "user",
-                "content":"""写入两个文件：                                                                                                                                                                                      
-  1. /workspace/persistent.txt，内容为「I will survive!」（我会活下来！）                                 
-  2. /scratch.txt，内容为「I am ephemeral」（我是临时的）                                                                                                                     
-然后列出这两个文件的位置。"""
-            }
-        ]
-    },
-    config=config
-)
+# result = agent_composite.invoke(
+#     {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content":"""写入两个文件：
+#   1. /workspace/persistent.txt，内容为「I will survive!」（我会活下来！）
+#   2. /scratch.txt，内容为「I am ephemeral」（我是临时的）
+# 然后列出这两个文件的位置。"""
+#             }
+#         ]
+#     },
+#     config=config
+# )
+# print("\n")
+# print("返回的结果:",result["messages"][-1].content)
+# print("\n")
+
+# for path,data in result.get("files",{}).items():
+#     if isinstance(data,dict) and "content" in data:
+#         content="\n".join(data["content"])
+#     else:
+#         content=str(data)
+#     print(f" `{path}`:{content}")
+
 print("\n")
-print("返回的结果:",result["messages"][-1].content)
 print("\n")
 
-for path,data in result.get("files",{}).items():
-    if isinstance(data,dict) and "content" in data:
-        content="\n".join(data["content"])
-    else:
-        content=str(data)
-    print(f" `{path}`:{content}")
+### StoreBackend
+
+agent = create_deep_agent(
+    backend=CompositeBackend(
+        default=StateBackend(),
+        routes={
+            "/memories/": StoreBackend(),
+        }
+    ),
+    store=InMemoryStore()
+)
+
+shutil.rmtree(sandbox_dir, ignore_errors=True)
+shutil.rmtree(workspace_dir, ignore_errors=True)
+print("✅ 临临时目录已清")
+print("\n")
