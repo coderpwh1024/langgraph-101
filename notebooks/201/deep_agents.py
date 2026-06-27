@@ -1,3 +1,4 @@
+import datetime
 import sys
 import tempfile
 from pathlib import Path
@@ -8,6 +9,7 @@ import tempfile
 import shutil
 import os
 
+from langchain_community.tools import EdenAiTextModerationTool
 from langchain_core.stores import InMemoryStore
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
@@ -311,4 +313,44 @@ shutil.rmtree(workspace_dir, ignore_errors=True)
 print("✅ 临临时目录已清")
 print("\n")
 print(
-    "-------------------------------------------03-子 Agent-------------------------------------------------------")
+    "-------------------------------------------04-子 Agent-------------------------------------------------------")
+
+current_date = datetime.now().strftime("%Y-%m-%d")
+
+# 提示词
+RESEARCHER_INSTRUCTIONS = f"""你是一名负责开展研究的研究助理。今天的日期是 {current_date}。
+
+ <任务>
+ 使用工具收集与研究主题相关的信息。
+ </任务>
+
+ <硬性限制>
+ - 简单查询：最多使用 2-3 次搜索工具调用
+ - 复杂查询：最多使用 5 次搜索工具调用
+ </硬性限制>
+
+ <输出格式>
+ 请按以下结构组织你的发现：
+ - 清晰的标题
+ - 行内引用 [1]、[2]、[3]
+ - 末尾附上来源部分
+ </输出格式>
+
+ 引用文件路径时，请使用反引号格式，例如 `path/file.md`，不要使用 Markdown 链接。
+ """
+
+# 子代理
+research_subagent={
+    "name":"research_subagent",
+    "description":"委派研究任务。一次只给一个主题",
+    "system_prompt":RESEARCHER_INSTRUCTIONS,
+    "tools":[tavily_search],
+}
+
+print("\n")
+print("搜索子代理")
+print("\n")
+print(f"Name:{research_subagent['name']}")
+print("\n")
+print(f"  Tools: {[t.name for t in research_subagent['tools']]}")
+print("\n")
