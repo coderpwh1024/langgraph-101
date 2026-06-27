@@ -1,6 +1,6 @@
-import datetime
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 from deepagents import create_deep_agent
@@ -350,9 +350,9 @@ research_subagent = {
 print("\n")
 print("搜索子代理")
 print("\n")
-print(f"Name:{research_subagent['name']}")
+print(f"名称:{research_subagent['name']}")
 print("\n")
-print(f"  Tools: {[t.name for t in research_subagent['tools']]}")
+print(f"  工具: {[t.name for t in research_subagent['tools']]}")
 print("\n")
 
 ORCHESTRATOR_INSTRUCTIONS = """你是一名研究协调员（research coordinator）                                                                                                                                                           
