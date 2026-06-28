@@ -366,33 +366,34 @@ ORCHESTRATOR_INSTRUCTIONS = """你是一名研究协调员（research coordinato
  """
 
 # 协调代理创建
-agent = create_deep_agent(
-    model=model,
-    tools=[tavily_search],
-    system_prompt=ORCHESTRATOR_INSTRUCTIONS,
-    subagents=[research_subagent],
-    checkpointer=checkpointer,
-)
+# agent = create_deep_agent(
+#     model=model,
+#     tools=[tavily_search],
+#     system_prompt=ORCHESTRATOR_INSTRUCTIONS,
+#     subagents=[research_subagent],
+#     checkpointer=checkpointer,
+# )
+#
+# print("\n")
+# print("Agent 已经创建了")
+#
+# config={"configurable":{"thread_id":uuid7()}}
 
-print("\n")
-print("Agent 已经创建了")
 
-config={"configurable":{"thread_id":uuid7()}}
-
-
-result= agent.invoke(
-    {
-        "messages":[
-            {
-                "role":"user",
-                "content":"轻度研究本周关于 AI 智能体（AI agents）的有趣新闻"
-            }
-        ]
-    }
-    ,config=config
-)
-print("\n")
+# result= agent.invoke(
+#     {
+#         "messages":[
+#             {
+#                 "role":"user",
+#                 "content":"轻度研究本周关于 AI 智能体（AI agents）的有趣新闻"
+#             }
+#         ]
+#     }
+#     ,config=config
+# )
+# print("\n")
 print(result["messages"][-1].content[:2000] + "...")
+
 print("\n")
 print("\n")
 
