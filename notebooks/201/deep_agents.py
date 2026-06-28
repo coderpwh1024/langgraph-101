@@ -399,3 +399,24 @@ print("\n")
 
 print(
     "-------------------------------------------04-MiddleWare-------------------------------------------------------")
+
+
+config ={"configurable":{"thread_id":uuid7()}}
+
+result= agent.invoke(
+    {
+        "messages":[
+            {
+                "role":"user",
+                "content":"我来用任务列表创建一个调研机器学习框架的计划"
+            }
+        ]
+    },
+    config=config
+)
+
+print("\n")
+print(result["messages"][-1].content)
+
+
+
