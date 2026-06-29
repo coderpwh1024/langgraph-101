@@ -392,7 +392,7 @@ ORCHESTRATOR_INSTRUCTIONS = """你是一名研究协调员（research coordinato
 #     ,config=config
 # )
 # print("\n")
-print(result["messages"][-1].content[:2000] + "...")
+# print(result["messages"][-1].content[:2000] + "...")
 
 print("\n")
 print("\n")
