@@ -447,7 +447,7 @@ def log_tool_calls(request, handler):
 agent_with_loggin = create_deep_agent(
     model=model,
     tools=[tavily_search],
-    system_prompt="你是一个有用的研究助手。在引用文件路径时，请使用反引号格式，如 path/file.md，而不是 markdown 链接",
+    system_prompt="你是一个有用的研究助手。在引用文件路径时，请使用反引号格式，如 path/file.md，而不是 markdown 链接,所有的回答必须用中文",
     middleware=[log_tool_calls],
     checkpointer=MemorySaver()
 )
