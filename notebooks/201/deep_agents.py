@@ -9,6 +9,7 @@ import tempfile
 import shutil
 import os
 
+from langchain.agents.middleware import wrap_tool_call
 from langchain_community.tools import EdenAiTextModerationTool
 from langchain_core.stores import InMemoryStore
 from langchain_core.tools import tool
@@ -400,15 +401,14 @@ print("\n")
 print(
     "-------------------------------------------05-MiddleWare-------------------------------------------------------")
 
+config = {"configurable": {"thread_id": uuid7()}}
 
-config ={"configurable":{"thread_id":uuid7()}}
-
-result= agent.invoke(
+result = agent.invoke(
     {
-        "messages":[
+        "messages": [
             {
-                "role":"user",
-                "content":"我来用任务列表创建一个调研机器学习框架的计划"
+                "role": "user",
+                "content": "我来用任务列表创建一个调研机器学习框架的计划"
             }
         ]
     },
@@ -429,15 +429,42 @@ if "todos" in result:
 else:
     print("状态中没有 todos（智能体可能使用了其他方式）")
 
-def log_tool_calls(request,handler):
+
+# 工具调用
+@wrap_tool_call
+def log_tool_calls(request, handler):
     """记录智能体的每一次工具调用"""
-    tool_name=request.tool_call["name"]
-    tool_args=request.tool_call["args"]
+    tool_name = request.tool_call["name"]
+    tool_args = request.tool_call["args"]
     print(f"[TOOL CALL] {tool_name}")
     print(f"[TOOL ARGS] {tool_args}")
 
-    result=handler(request)
+    result = handler(request)
     print(f"✅ [Tool Done] {tool_name}\n")
     return result
 
+
+agent_with_loggin = create_deep_agent(
+    model=model,
+    tools=[tavily_search],
+    system_prompt="你是一个有用的研究助手。在引用文件路径时，请使用反引号格式，如 path/file.md，而不是 markdown 链接",
+    middleware=[log_tool_calls],
+    checkpointer=MemorySaver()
+)
+
+config = {"configurable": {"thread_id": uuid7()}}
+
+result = agent.invoke({
+
+    "messages": [
+        {
+            "role": "user",
+            "content": "什么是 LangGraph？请在你的文件系统中创建一份简短的总结"
+        }
+    ]
+}, config=config)
+print("\n")
+print("\n--- Agent Response ---")
+print(result["messages"][-1].content)
+print("\n")
 
