@@ -429,7 +429,15 @@ if "todos" in result:
 else:
     print("状态中没有 todos（智能体可能使用了其他方式）")
 
+def log_tool_calls(request,handler):
+    """记录智能体的每一次工具调用"""
+    tool_name=request.tool_call["name"]
+    tool_args=request.tool_call["args"]
+    print(f"[TOOL CALL] {tool_name}")
+    print(f"[TOOL ARGS] {tool_args}")
 
-
+    result=handler(request)
+    print(f"✅ [Tool Done] {tool_name}\n")
+    return result
 
 
