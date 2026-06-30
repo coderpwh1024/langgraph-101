@@ -418,5 +418,18 @@ result= agent.invoke(
 print("\n")
 print(result["messages"][-1].content)
 
+if "todos" in result:
+    print("Agent Todo List:\n")
+    for todo in result["todos"]:
+        status_map = {"completed": "✅", "in_progress": "🔄", "pending": "⬚"}
+        status = todo.get("status", "pending")
+        icon = status_map.get(status, "⬚")
+        content = todo.get("content", str(todo))
+        print(f"{icon} {content}")
+else:
+    print("状态中没有 todos（智能体可能使用了其他方式）")
+
+
+
 
 
