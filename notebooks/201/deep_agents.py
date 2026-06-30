@@ -366,13 +366,13 @@ ORCHESTRATOR_INSTRUCTIONS = """你是一名研究协调员（research coordinato
  """
 
 # 协调代理创建
-# agent = create_deep_agent(
-#     model=model,
-#     tools=[tavily_search],
-#     system_prompt=ORCHESTRATOR_INSTRUCTIONS,
-#     subagents=[research_subagent],
-#     checkpointer=checkpointer,
-# )
+agent = create_deep_agent(
+    model=model,
+    tools=[tavily_search],
+    system_prompt=ORCHESTRATOR_INSTRUCTIONS,
+    subagents=[research_subagent],
+    checkpointer=checkpointer,
+)
 #
 # print("\n")
 # print("Agent 已经创建了")
@@ -398,7 +398,7 @@ print("\n")
 print("\n")
 
 print(
-    "-------------------------------------------04-MiddleWare-------------------------------------------------------")
+    "-------------------------------------------05-MiddleWare-------------------------------------------------------")
 
 
 config ={"configurable":{"thread_id":uuid7()}}
