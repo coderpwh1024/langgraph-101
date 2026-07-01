@@ -11,7 +11,7 @@ import os
 
 from langchain.agents.middleware import wrap_tool_call
 from langchain_community.tools import EdenAiTextModerationTool
-from langchain_core.stores import InMemoryStore
+from langgraph.store.memory import InMemoryStore
 from langchain_core.tools import tool
 from langgraph.types import Command
 
@@ -550,4 +550,52 @@ interrupt_on = {
 print("\n")
 print(
     "-------------------------------------------07-Long-term-Memory------------------------------------------------------")
+print("\n")
+
+store = InMemoryStore()
+# 组合式后端
+composite_backend = CompositeBackend(
+    default=StateBackend(),
+    routes={
+        "/memories/": StoreBackend()
+    }
+)
+print("组合式后端已经创建")
+
+agent_with_memory = create_deep_agent(
+    model=model,
+    tools=[tavily_search],
+    system_prompt="""你是一个具备长期记忆能力的研究助手。                                                                                               
+     重要：请把重要的笔记保存到 /memories/ 目录下，以便它们能在多次对话之间持久保留。                                                                                                                        
+     例如：/memories/research_notes.md                                                                                                              
+     不在 /memories/ 目录下的普通文件会在对话结束后消失。                                                                                                                                     
+     当被问到你记得什么或知道什么时，务必先用 ls 和 read_file 查看 /memories/ 目录。                                                                                                                         
+     不要只依赖当前对话的上下文——记忆会跨线程（thread）持久保留，但对话内容不会。                                                                                                                                    
+     在引用文件路径时，请使用反引号格式（如 `path/file.md`），而不要使用 Markdown 链接。
+     所有的回答必须使用中文回答                                                                                                                    
+     """,
+    subagents=[research_subagent],
+    backend=composite_backend,
+    store=store,
+    checkpointer=checkpointer
+)
+print("\n")
+print("长期记忆Agent已经创建")
+print("\n")
+
+thread1_config = {"configurable": {"thread_id": uuid7()}}
+
+result = agent_with_memory.invoke(
+    {
+        "messages": [
+            {
+                "role": "user",
+                "content": "把重要研究发现：AI agent（智能体）正在快速演进」保存到 /memories/findings.md"
+            }
+        ]
+    },
+    config=thread1_config
+)
+print("线程1:回答结果:\n")
+print(result["messages"][-1].content)
 print("\n")
