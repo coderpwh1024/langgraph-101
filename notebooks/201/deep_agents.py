@@ -462,7 +462,7 @@ agent_with_loggin = create_deep_agent(
 
 config = {"configurable": {"thread_id": uuid7()}}
 
-result = agent.invoke({
+result = agent_with_loggin.invoke({
 
     "messages": [
         {
