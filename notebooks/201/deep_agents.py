@@ -599,3 +599,91 @@ result = agent_with_memory.invoke(
 print("线程1:回答结果:\n")
 print(result["messages"][-1].content)
 print("\n")
+
+thread2_config = {"configurable": {"thread_id": uuid7()}}
+
+result = agent_with_memory.invoke({
+    "messages": [
+        {
+            "role": "user",
+            "content": "请查看 /memories/findings.md"
+        }
+    ]
+}, config=thread2_config)
+
+print("线程2:回答结果:\n")
+print(result["messages"][-1].content)
+print("\n")
+
+memory_store = InMemoryStore()
+
+# 创建组合式后端
+advanced_composite_backend = CompositeBackend(
+    default=StateBackend(),
+    routes={
+        "/memories/semantic/": StoreBackend(namespace=lambda rt: ("memories", "semantic")),
+        "/memories/episodic/": StoreBackend(namespace=lambda rt: ("memories", "episodic")),
+        "/memories/procedural/": StoreBackend(namespace=lambda rt: ("memories", "procedural")),
+    }
+)
+print("\n")
+print("已创建高级组合式后端，包含 3 种记忆类型的路由！")
+
+memory_agent = create_deep_agent(
+    model=model,
+    tools=[tavily_search],
+    system_prompt="""你是一个具备结构化长期记忆的智能助手。                                                                                                                                                 
+
+    你的记忆分为三种类型：                                                                                                                                                                                  
+    - /memories/semantic/   -> 事实与知识（用户偏好、项目详情）                                                                                                                                             
+    - /memories/episodic/   -> 过往经历（会话日志、交互摘要）                                                                                                                                               
+    - /memories/procedural/ -> 指令与规则（如何撰写报告、编码规范）                                                                                                                                         
+
+    当被要求记住某件事时，将其保存到对应的记忆类型中。                                                                                                                                                      
+    普通文件（不在 /memories/ 目录下）是临时的，会话结束后即消失。                                                                                                                                          
+
+    当被问及你记得什么或了解用户的哪些信息时，务必先使用 ls 和 read_file                                                                                                                                    
+    检查记忆目录，不要仅依赖对话上下文。                                                                                                                                                                    
+
+    引用文件路径时，请使用反引号格式，如 `path/file.md`，而不是 markdown 链接。                                                                                                                             
+    """,
+    subagents=[research_subagent],
+    backend=advanced_composite_backend,
+    store=memory_store,
+    checkpointer=checkpointer
+)
+
+config_t1 = {"configurable": {"thread_id": uuid7()}}
+
+result = memory_agent.invoke(
+    {
+        "messages": [
+            {
+                "role": "user",
+                "content": """请将以下内容保存到相应的记忆类型中：                                                                                                                                                      
+  1. 我更喜欢 Python 而非 JavaScript（这是关于我的一个事实）                                                                                                                                              
+  2. 在上一次会话中，我们研究了 LangGraph 并发现它很有用（这是一段过往经历）                                                                                                                              
+  3. 在研究报告中始终使用行内引用标注 [1]、[2]（这是一条规则）"""
+            }
+        ]
+    },
+    config=config_t1
+)
+print("\n")
+print(result["messages"][-1].content)
+print("\n")
+
+config_t2 = {"configurable": {"thread_id": uuid7()}}
+result = memory_agent.invoke(
+    {
+        "messages": [
+            {
+                "role": "user",
+                "content": "我来查看记忆库，看看关于你的记录"
+            }
+        ]
+    },
+    config=config_t2
+)
+print("\n")
+print(result["messages"][-1].content)
