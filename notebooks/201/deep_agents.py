@@ -687,3 +687,48 @@ result = memory_agent.invoke(
 )
 print("\n")
 print(result["messages"][-1].content)
+print("\n")
+print("\n")
+
+scoped_store = InMemoryStore()
+
+# 创建范围组合式后端
+scoped_backend = CompositeBackend(
+    default=StateBackend(),
+    routes={
+        "/memories/user/": StoreBackend(
+            namespace=lambda rt: ("user", getattr(rt.context, "user_id", "default"), "filesystem")),
+        "/memories/shared": StoreBackend(namespace=lambda rt: ("shared", "filesystem")),
+
+    }
+)
+
+scoped_agent = create_deep_agent(
+    model=model,
+    tools=[tavily_search],
+    system_prompt="",
+    checkpointer=checkpointer,
+    backend=scoped_backend,
+    store=scoped_store
+)
+print("\n")
+print("分级智能体创建成功：支持用户私有记忆与共享记忆！")
+print("\n")
+
+config_alice= {"configurable":{"thread_id": uuid7(), "user_id": "alice"}}
+
+result = scoped_agent.invoke(
+    {
+        "messages": [
+            {
+                "role": "user",
+                "content":"""把这两条内容保存下来：                                                                                                                                                                                  
+  1. 保存到我的私有记忆（/memories/user/）：「Alice 偏好深色模式和 Python」                                                                                                                               
+  2. 保存到共享记忆（/memories/shared/）：「团队规范：始终编写单元测试」"""
+            }
+        ]
+    },config=config_alice
+)
+
+print("\n")
+print("Alice 画像:",result["messages"[-1].content])
