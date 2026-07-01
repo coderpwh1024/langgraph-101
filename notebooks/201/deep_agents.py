@@ -13,7 +13,8 @@ from langchain.agents.middleware import wrap_tool_call
 from langchain_community.tools import EdenAiTextModerationTool
 from langchain_core.stores import InMemoryStore
 from langchain_core.tools import tool
-from langchain_protocol import Command
+from langgraph.types import Command
+
 from langgraph.checkpoint.memory import MemorySaver
 from langsmith import uuid7
 from numpy.testing.print_coercion_tables import print_new_cast_table
@@ -488,7 +489,7 @@ print("\n")
 interrupt_on = {
     "delete_file": {"allowed_decisions": ["approve", "edit", "reject"]},
     "write_file": {"allowed_decisions": ["approve", "reject"]},
-    "critical_operation": {"allowed_decision": ["approve"]}
+    "critical_operation": {"allowed_decisions": ["approve"]}
 }
 
 # 创建 agent
