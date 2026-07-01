@@ -544,7 +544,7 @@ if result.get("__interrupt__"):
         Command(resume={"decisions": [{"type": "approve"}]}),
         config=config
     )
-    print("✅ Resumed with approval!")
+    print("✅ 已获批准，继续执行！")
     print(result["messages"][-1].content)
 
 
