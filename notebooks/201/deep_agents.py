@@ -3,7 +3,6 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
-
 from deepagents import create_deep_agent
 from deepagents.backends import FilesystemBackend, CompositeBackend, StateBackend, StoreBackend
 import tempfile
@@ -82,6 +81,7 @@ if not api_key:
         "否则会进入 keyless 匿名模式并很快被限流。"
     )
 tavily_client = TavilyClient(api_key)
+
 
 # 搜索工具
 @tool(parse_docstring=True)
@@ -411,6 +411,7 @@ print(
 
 config = {"configurable": {"thread_id": uuid7()}}
 
+
 # result = agent.invoke(
 #     {
 #         "messages": [
@@ -476,5 +477,16 @@ def log_tool_calls(request, handler):
 # print(result["messages"][-1].content)
 # print("\n")
 
+print("\n")
 print(
     "-------------------------------------------06-Human-in-the-Loop-------------------------------------------------------")
+print("\n")
+
+# 创建一个中断点
+interrupt_on = {
+    "delete_file": {"allowed_decisions": ["approve", "edit", "reject"]},
+    "write_file": {"allowed_decisions": ["approve", "reject"]},
+    "critical_operation": {"allowed_decision": ["approve"]}
+}
+
+
