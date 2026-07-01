@@ -91,7 +91,9 @@ def tavily_search(query: str) -> str:
     Args:
         query: 要执行的搜索查询（search query）。
     """
-    search_results = tavily_client.search(query, max_results=3, topic="general")
+    search_results = tavily_client.search(
+        query, max_results=3, topic="general", search_depth="basic"
+    )
     result_texts = []
 
     for result in search_results.get("results", []):
@@ -453,7 +455,7 @@ def log_tool_calls(request, handler):
 agent_with_loggin = create_deep_agent(
     model=model,
     tools=[tavily_search],
-    system_prompt="你是一个有用的研究助手。在引用文件路径时，请使用反引号格式，如 path/file.md，而不是 markdown 链接,所有的回答必须用中文",
+    system_prompt="你是一个有用的研究助手。在引用文件路径时，请使用反引号格式，如 path/file.md，而不是 markdown 链接。回答必须用中文回答",
     middleware=[log_tool_calls],
     checkpointer=MemorySaver()
 )
