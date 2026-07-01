@@ -411,31 +411,31 @@ print(
 
 config = {"configurable": {"thread_id": uuid7()}}
 
-result = agent.invoke(
-    {
-        "messages": [
-            {
-                "role": "user",
-                "content": "我来用任务列表创建一个调研机器学习框架的计划"
-            }
-        ]
-    },
-    config=config
-)
+# result = agent.invoke(
+#     {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": "我来用任务列表创建一个调研机器学习框架的计划"
+#             }
+#         ]
+#     },
+#     config=config
+# )
+#
+# print("\n")
+# print(result["messages"][-1].content)
 
-print("\n")
-print(result["messages"][-1].content)
-
-if "todos" in result:
-    print("Agent Todo List:\n")
-    for todo in result["todos"]:
-        status_map = {"completed": "✅", "in_progress": "🔄", "pending": "⬚"}
-        status = todo.get("status", "pending")
-        icon = status_map.get(status, "⬚")
-        content = todo.get("content", str(todo))
-        print(f"{icon} {content}")
-else:
-    print("状态中没有 todos（智能体可能使用了其他方式）")
+# if "todos" in result:
+#     print("Agent Todo List:\n")
+#     for todo in result["todos"]:
+#         status_map = {"completed": "✅", "in_progress": "🔄", "pending": "⬚"}
+#         status = todo.get("status", "pending")
+#         icon = status_map.get(status, "⬚")
+#         content = todo.get("content", str(todo))
+#         print(f"{icon} {content}")
+# else:
+#     print("状态中没有 todos（智能体可能使用了其他方式）")
 
 
 # 工具调用
@@ -452,27 +452,29 @@ def log_tool_calls(request, handler):
     return result
 
 
-agent_with_loggin = create_deep_agent(
-    model=model,
-    tools=[tavily_search],
-    system_prompt="你是一个有用的研究助手。在引用文件路径时，请使用反引号格式，如 path/file.md，而不是 markdown 链接。回答必须用中文回答",
-    middleware=[log_tool_calls],
-    checkpointer=MemorySaver()
-)
+# agent_with_loggin = create_deep_agent(
+#     model=model,
+#     tools=[tavily_search],
+#     system_prompt="你是一个有用的研究助手。在引用文件路径时，请使用反引号格式，如 path/file.md，而不是 markdown 链接。回答必须用中文回答",
+#     middleware=[log_tool_calls],
+#     checkpointer=MemorySaver()
+# )
 
-config = {"configurable": {"thread_id": uuid7()}}
+# config = {"configurable": {"thread_id": uuid7()}}
 
-result = agent_with_loggin.invoke({
+# result = agent_with_loggin.invoke({
+#
+#     "messages": [
+#         {
+#             "role": "user",
+#             "content": "什么是 LangGraph？请在你的文件系统中创建一份简短的总结"
+#         }
+#     ]
+# }, config=config)
+# print("\n")
+# print("\n--- Agent Response ---")
+# print(result["messages"][-1].content)
+# print("\n")
 
-    "messages": [
-        {
-            "role": "user",
-            "content": "什么是 LangGraph？请在你的文件系统中创建一份简短的总结"
-        }
-    ]
-}, config=config)
-print("\n")
-print("\n--- Agent Response ---")
-print(result["messages"][-1].content)
-print("\n")
-
+print(
+    "-------------------------------------------06-Human-in-the-Loop-------------------------------------------------------")
