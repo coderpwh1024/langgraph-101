@@ -13,6 +13,7 @@ from langchain.agents.middleware import wrap_tool_call
 from langchain_community.tools import EdenAiTextModerationTool
 from langchain_core.stores import InMemoryStore
 from langchain_core.tools import tool
+from langchain_protocol import Command
 from langgraph.checkpoint.memory import MemorySaver
 from langsmith import uuid7
 from numpy.testing.print_coercion_tables import print_new_cast_table
@@ -536,6 +537,14 @@ else:
    print(result["messages"][-1].content)
 
 
+print("\n")
+if result.get("__interrupt__"):
+    result=agent_with_hitl.invoke(
+        Command(resume={"decisions": [{"type": "approve"}]}),
+        config=config
+    )
+    print("✅ Resumed with approval!")
+    print(result["messages"][-1].content)
 
 
 
