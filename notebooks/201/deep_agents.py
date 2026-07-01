@@ -3,6 +3,7 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
+
 from deepagents import create_deep_agent
 from deepagents.backends import FilesystemBackend, CompositeBackend, StateBackend, StoreBackend
 import tempfile
@@ -74,8 +75,13 @@ print(
     "-------------------------------------------02-自定义工具-------------------------------------------------------")
 
 # 初始化 TavilyClient 搜索
-tavily_client = TavilyClient()
-
+api_key = os.getenv("TAVILY_API_KEY")
+if not api_key:
+    raise RuntimeError(
+        "未检测到 TAVILY_API_KEY，请在 .env 中配置后再运行；"
+        "否则会进入 keyless 匿名模式并很快被限流。"
+    )
+tavily_client = TavilyClient(api_key)
 
 # 搜索工具
 @tool(parse_docstring=True)
