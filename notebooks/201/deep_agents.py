@@ -706,7 +706,19 @@ scoped_backend = CompositeBackend(
 scoped_agent = create_deep_agent(
     model=model,
     tools=[tavily_search],
-    system_prompt="",
+    system_prompt="""你是一个具有分级记忆（scoped memory）能力的助手。                                                                                                                                      
+
+    记忆作用域（MEMORY SCOPES）：                                                                                                                                                                           
+    - /memories/user/    -> 当前用户私有（仅该用户可见）                                                                                                                                                    
+    - /memories/shared/  -> 全体用户共享（所有人可见）                                                                                                                                                      
+
+    请把个人偏好保存到 /memories/user/，把团队规范保存到 /memories/shared/。                                                                                                                                
+
+    当被问到你记得哪些内容时，务必先使用 ls 和 read_file 检查记忆目录。                                                                                                                                     
+
+    引用文件路径时，请使用反引号格式，例如 `path/file.md`，而不要使用 markdown 链接。
+    所有的回答必须是中文                                                                                                                       
+    """,
     checkpointer=checkpointer,
     backend=scoped_backend,
     store=scoped_store
@@ -715,20 +727,37 @@ print("\n")
 print("分级智能体创建成功：支持用户私有记忆与共享记忆！")
 print("\n")
 
-config_alice= {"configurable":{"thread_id": uuid7(), "user_id": "alice"}}
+config_alice = {"configurable": {"thread_id": uuid7(), "user_id": "alice"}}
 
 result = scoped_agent.invoke(
     {
         "messages": [
             {
                 "role": "user",
-                "content":"""把这两条内容保存下来：                                                                                                                                                                                  
+                "content": """把这两条内容保存下来：                                                                                                                                                                                  
   1. 保存到我的私有记忆（/memories/user/）：「Alice 偏好深色模式和 Python」                                                                                                                               
   2. 保存到共享记忆（/memories/shared/）：「团队规范：始终编写单元测试」"""
             }
         ]
-    },config=config_alice
+    }, config=config_alice
 )
 
 print("\n")
-print("Alice 画像:",result["messages"[-1].content])
+print("Alice 画像:", result["messages"][-1].content)
+print("\n")
+
+config_bob = {"configurable": {"thread_id": uuid7(), "user_id": "bob"}}
+result = scoped_agent.invoke(
+    {
+        "messages": [
+            {
+                "role": "user",
+                "content": "列出 /memories/user/ 和 /memories/shared/ 目录下的所有文件，以查看你可以访问的内容"
+            }
+        ]
+    }, config=config_bob
+)
+print("\n")
+print("Bob sees:\n", result["messages"][-1].content)
+print("\n" + "=" * 50)
+print("Bob 可以看到共享的指导规范，但看不到 Alice 的私有偏好设置！")
