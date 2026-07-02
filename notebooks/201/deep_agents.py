@@ -590,7 +590,7 @@ result = agent_with_memory.invoke(
         "messages": [
             {
                 "role": "user",
-                "content": "把重要研究发现：AI agent（智能体）正在快速演进」保存到 /memories/findings.md"
+                "content": "把重要研究发现「AI agent（智能体）正在快速演进」保存到 /memories/findings.md"
             }
         ]
     },
@@ -698,7 +698,7 @@ scoped_backend = CompositeBackend(
     routes={
         "/memories/user/": StoreBackend(
             namespace=lambda rt: ("user", getattr(rt.context, "user_id", "default"), "filesystem")),
-        "/memories/shared": StoreBackend(namespace=lambda rt: ("shared", "filesystem")),
+        "/memories/shared/": StoreBackend(namespace=lambda rt: ("shared", "filesystem")),
 
     }
 )
