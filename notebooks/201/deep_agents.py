@@ -547,217 +547,246 @@ interrupt_on = {
 #     print(result["messages"][-1].content)
 
 
+
 print("\n")
 print(
     "-------------------------------------------07-Long-term-Memory------------------------------------------------------")
 print("\n")
 
-store = InMemoryStore()
-# 组合式后端
-composite_backend = CompositeBackend(
-    default=StateBackend(),
-    routes={
-        "/memories/": StoreBackend()
-    }
-)
-print("组合式后端已经创建")
+# store = InMemoryStore()
+# # 组合式后端
+# composite_backend = CompositeBackend(
+#     default=StateBackend(),
+#     routes={
+#         "/memories/": StoreBackend()
+#     }
+# )
+# print("组合式后端已经创建")
+#
+# agent_with_memory = create_deep_agent(
+#     model=model,
+#     tools=[tavily_search],
+#     system_prompt="""你是一个具备长期记忆能力的研究助手。
+#      重要：请把重要的笔记保存到 /memories/ 目录下，以便它们能在多次对话之间持久保留。
+#      例如：/memories/research_notes.md
+#      不在 /memories/ 目录下的普通文件会在对话结束后消失。
+#      当被问到你记得什么或知道什么时，务必先用 ls 和 read_file 查看 /memories/ 目录。
+#      不要只依赖当前对话的上下文——记忆会跨线程（thread）持久保留，但对话内容不会。
+#      在引用文件路径时，请使用反引号格式（如 `path/file.md`），而不要使用 Markdown 链接。
+#      所有的回答必须使用中文回答
+#      """,
+#     subagents=[research_subagent],
+#     backend=composite_backend,
+#     store=store,
+#     checkpointer=checkpointer
+# )
+# print("\n")
+# print("长期记忆Agent已经创建")
+# print("\n")
+#
+# thread1_config = {"configurable": {"thread_id": uuid7()}}
+#
+# result = agent_with_memory.invoke(
+#     {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": "把重要研究发现「AI agent（智能体）正在快速演进」保存到 /memories/findings.md"
+#             }
+#         ]
+#     },
+#     config=thread1_config
+# )
+# print("线程1:回答结果:\n")
+# print(result["messages"][-1].content)
+# print("\n")
+#
+# thread2_config = {"configurable": {"thread_id": uuid7()}}
+#
+# result = agent_with_memory.invoke({
+#     "messages": [
+#         {
+#             "role": "user",
+#             "content": "请查看 /memories/findings.md"
+#         }
+#     ]
+# }, config=thread2_config)
+#
+# print("线程2:回答结果:\n")
+# print(result["messages"][-1].content)
+# print("\n")
+#
+# memory_store = InMemoryStore()
+#
+# # 创建组合式后端
+# advanced_composite_backend = CompositeBackend(
+#     default=StateBackend(),
+#     routes={
+#         "/memories/semantic/": StoreBackend(namespace=lambda rt: ("memories", "semantic")),
+#         "/memories/episodic/": StoreBackend(namespace=lambda rt: ("memories", "episodic")),
+#         "/memories/procedural/": StoreBackend(namespace=lambda rt: ("memories", "procedural")),
+#     }
+# )
+# print("\n")
+# print("已创建高级组合式后端，包含 3 种记忆类型的路由！")
+#
+# memory_agent = create_deep_agent(
+#     model=model,
+#     tools=[tavily_search],
+#     system_prompt="""你是一个具备结构化长期记忆的智能助手。
+#
+#     你的记忆分为三种类型：
+#     - /memories/semantic/   -> 事实与知识（用户偏好、项目详情）
+#     - /memories/episodic/   -> 过往经历（会话日志、交互摘要）
+#     - /memories/procedural/ -> 指令与规则（如何撰写报告、编码规范）
+#
+#     当被要求记住某件事时，将其保存到对应的记忆类型中。
+#     普通文件（不在 /memories/ 目录下）是临时的，会话结束后即消失。
+#
+#     当被问及你记得什么或了解用户的哪些信息时，务必先使用 ls 和 read_file
+#     检查记忆目录，不要仅依赖对话上下文。
+#
+#     引用文件路径时，请使用反引号格式，如 `path/file.md`，而不是 markdown 链接。
+#     """,
+#     subagents=[research_subagent],
+#     backend=advanced_composite_backend,
+#     store=memory_store,
+#     checkpointer=checkpointer
+# )
+#
+# config_t1 = {"configurable": {"thread_id": uuid7()}}
+#
+# result = memory_agent.invoke(
+#     {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": """请将以下内容保存到相应的记忆类型中：
+#   1. 我更喜欢 Python 而非 JavaScript（这是关于我的一个事实）
+#   2. 在上一次会话中，我们研究了 LangGraph 并发现它很有用（这是一段过往经历）
+#   3. 在研究报告中始终使用行内引用标注 [1]、[2]（这是一条规则）"""
+#             }
+#         ]
+#     },
+#     config=config_t1
+# )
+# print("\n")
+# print(result["messages"][-1].content)
+# print("\n")
+#
+# config_t2 = {"configurable": {"thread_id": uuid7()}}
+# result = memory_agent.invoke(
+#     {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": "我来查看记忆库，看看关于你的记录"
+#             }
+#         ]
+#     },
+#     config=config_t2
+# )
+# print("\n")
+# print(result["messages"][-1].content)
+# print("\n")
+# print("\n")
+#
+# scoped_store = InMemoryStore()
+#
+# # 创建范围组合式后端
+# scoped_backend = CompositeBackend(
+#     default=StateBackend(),
+#     routes={
+#         "/memories/user/": StoreBackend(
+#             namespace=lambda rt: ("user", getattr(rt.context, "user_id", "default"), "filesystem")),
+#         "/memories/shared/": StoreBackend(namespace=lambda rt: ("shared", "filesystem")),
+#
+#     }
+# )
+#
+# scoped_agent = create_deep_agent(
+#     model=model,
+#     tools=[tavily_search],
+#     system_prompt="""你是一个具有分级记忆（scoped memory）能力的助手。
+#
+#     记忆作用域（MEMORY SCOPES）：
+#     - /memories/user/    -> 当前用户私有（仅该用户可见）
+#     - /memories/shared/  -> 全体用户共享（所有人可见）
+#
+#     请把个人偏好保存到 /memories/user/，把团队规范保存到 /memories/shared/。
+#
+#     当被问到你记得哪些内容时，务必先使用 ls 和 read_file 检查记忆目录。
+#
+#     引用文件路径时，请使用反引号格式，例如 `path/file.md`，而不要使用 markdown 链接。
+#     所有的回答必须是中文
+#     """,
+#     checkpointer=checkpointer,
+#     backend=scoped_backend,
+#     store=scoped_store
+# )
+# print("\n")
+# print("分级智能体创建成功：支持用户私有记忆与共享记忆！")
+# print("\n")
+#
+# config_alice = {"configurable": {"thread_id": uuid7(), "user_id": "alice"}}
+#
+# result = scoped_agent.invoke(
+#     {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": """把这两条内容保存下来：
+#   1. 保存到我的私有记忆（/memories/user/）：「Alice 偏好深色模式和 Python」
+#   2. 保存到共享记忆（/memories/shared/）：「团队规范：始终编写单元测试」"""
+#             }
+#         ]
+#     }, config=config_alice
+# )
+#
+# print("\n")
+# print("Alice 画像:", result["messages"][-1].content)
+# print("\n")
+#
+# config_bob = {"configurable": {"thread_id": uuid7(), "user_id": "bob"}}
+# result = scoped_agent.invoke(
+#     {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": "列出 /memories/user/ 和 /memories/shared/ 目录下的所有文件，以查看你可以访问的内容"
+#             }
+#         ]
+#     }, config=config_bob
+# )
+# print("\n")
+# print("Bob sees:\n", result["messages"][-1].content)
+# print("\n" + "=" * 50)
+# print("Bob 可以看到共享的指导规范，但看不到 Alice 的私有偏好设置！")
 
-agent_with_memory = create_deep_agent(
-    model=model,
-    tools=[tavily_search],
-    system_prompt="""你是一个具备长期记忆能力的研究助手。                                                                                               
-     重要：请把重要的笔记保存到 /memories/ 目录下，以便它们能在多次对话之间持久保留。                                                                                                                        
-     例如：/memories/research_notes.md                                                                                                              
-     不在 /memories/ 目录下的普通文件会在对话结束后消失。                                                                                                                                     
-     当被问到你记得什么或知道什么时，务必先用 ls 和 read_file 查看 /memories/ 目录。                                                                                                                         
-     不要只依赖当前对话的上下文——记忆会跨线程（thread）持久保留，但对话内容不会。                                                                                                                                    
-     在引用文件路径时，请使用反引号格式（如 `path/file.md`），而不要使用 Markdown 链接。
-     所有的回答必须使用中文回答                                                                                                                    
-     """,
-    subagents=[research_subagent],
-    backend=composite_backend,
-    store=store,
-    checkpointer=checkpointer
-)
+
 print("\n")
-print("长期记忆Agent已经创建")
+print(
+    "-------------------------------------------08-Agent.md&Skills------------------------------------------------------")
 print("\n")
 
-thread1_config = {"configurable": {"thread_id": uuid7()}}
+agents_md_content = """# 研究助理                                                                                                                                                                       
 
-result = agent_with_memory.invoke(
-    {
-        "messages": [
-            {
-                "role": "user",
-                "content": "把重要研究发现「AI agent（智能体）正在快速演进」保存到 /memories/findings.md"
-            }
-        ]
-    },
-    config=thread1_config
-)
-print("线程1:回答结果:\n")
-print(result["messages"][-1].content)
-print("\n")
+  你是一名专业的研究助理，能够搜索网络、综合分析研究结果，并产出精良的报告与内容。                                                                                                                        
 
-thread2_config = {"configurable": {"thread_id": uuid7()}}
+  ## 工作流程                                                                                                                                                                                             
 
-result = agent_with_memory.invoke({
-    "messages": [
-        {
-            "role": "user",
-            "content": "请查看 /memories/findings.md"
-        }
-    ]
-}, config=thread2_config)
+  1. **规划（Plan）** —— 使用 `write_todos` 将任务拆解为若干步骤                                                                                                                                          
+  2. **研究（Research）** —— 使用 tavily_search 搜索信息                                                                                                                                                  
+  3. **反思（Reflect）** —— 每次搜索后进行反思，分析研究结果                                                                                                                                              
+  4. **综合（Synthesize）** —— 将研究结果整合成一份完整的报告                                                                                                                                             
+  5. **撰写（Write）** —— 将最终报告保存到 `/final_report.md`                                                                                                                                             
+  6. **记录（Remember）** —— 将关键要点保存到 `/memories/research_notes.md`                                                                                                                               
 
-print("线程2:回答结果:\n")
-print(result["messages"][-1].content)
-print("\n")
+  ## 规则                                                                                                                                                                                                 
 
-memory_store = InMemoryStore()
-
-# 创建组合式后端
-advanced_composite_backend = CompositeBackend(
-    default=StateBackend(),
-    routes={
-        "/memories/semantic/": StoreBackend(namespace=lambda rt: ("memories", "semantic")),
-        "/memories/episodic/": StoreBackend(namespace=lambda rt: ("memories", "episodic")),
-        "/memories/procedural/": StoreBackend(namespace=lambda rt: ("memories", "procedural")),
-    }
-)
-print("\n")
-print("已创建高级组合式后端，包含 3 种记忆类型的路由！")
-
-memory_agent = create_deep_agent(
-    model=model,
-    tools=[tavily_search],
-    system_prompt="""你是一个具备结构化长期记忆的智能助手。                                                                                                                                                 
-
-    你的记忆分为三种类型：                                                                                                                                                                                  
-    - /memories/semantic/   -> 事实与知识（用户偏好、项目详情）                                                                                                                                             
-    - /memories/episodic/   -> 过往经历（会话日志、交互摘要）                                                                                                                                               
-    - /memories/procedural/ -> 指令与规则（如何撰写报告、编码规范）                                                                                                                                         
-
-    当被要求记住某件事时，将其保存到对应的记忆类型中。                                                                                                                                                      
-    普通文件（不在 /memories/ 目录下）是临时的，会话结束后即消失。                                                                                                                                          
-
-    当被问及你记得什么或了解用户的哪些信息时，务必先使用 ls 和 read_file                                                                                                                                    
-    检查记忆目录，不要仅依赖对话上下文。                                                                                                                                                                    
-
-    引用文件路径时，请使用反引号格式，如 `path/file.md`，而不是 markdown 链接。                                                                                                                             
-    """,
-    subagents=[research_subagent],
-    backend=advanced_composite_backend,
-    store=memory_store,
-    checkpointer=checkpointer
-)
-
-config_t1 = {"configurable": {"thread_id": uuid7()}}
-
-result = memory_agent.invoke(
-    {
-        "messages": [
-            {
-                "role": "user",
-                "content": """请将以下内容保存到相应的记忆类型中：                                                                                                                                                      
-  1. 我更喜欢 Python 而非 JavaScript（这是关于我的一个事实）                                                                                                                                              
-  2. 在上一次会话中，我们研究了 LangGraph 并发现它很有用（这是一段过往经历）                                                                                                                              
-  3. 在研究报告中始终使用行内引用标注 [1]、[2]（这是一条规则）"""
-            }
-        ]
-    },
-    config=config_t1
-)
-print("\n")
-print(result["messages"][-1].content)
-print("\n")
-
-config_t2 = {"configurable": {"thread_id": uuid7()}}
-result = memory_agent.invoke(
-    {
-        "messages": [
-            {
-                "role": "user",
-                "content": "我来查看记忆库，看看关于你的记录"
-            }
-        ]
-    },
-    config=config_t2
-)
-print("\n")
-print(result["messages"][-1].content)
-print("\n")
-print("\n")
-
-scoped_store = InMemoryStore()
-
-# 创建范围组合式后端
-scoped_backend = CompositeBackend(
-    default=StateBackend(),
-    routes={
-        "/memories/user/": StoreBackend(
-            namespace=lambda rt: ("user", getattr(rt.context, "user_id", "default"), "filesystem")),
-        "/memories/shared/": StoreBackend(namespace=lambda rt: ("shared", "filesystem")),
-
-    }
-)
-
-scoped_agent = create_deep_agent(
-    model=model,
-    tools=[tavily_search],
-    system_prompt="""你是一个具有分级记忆（scoped memory）能力的助手。                                                                                                                                      
-
-    记忆作用域（MEMORY SCOPES）：                                                                                                                                                                           
-    - /memories/user/    -> 当前用户私有（仅该用户可见）                                                                                                                                                    
-    - /memories/shared/  -> 全体用户共享（所有人可见）                                                                                                                                                      
-
-    请把个人偏好保存到 /memories/user/，把团队规范保存到 /memories/shared/。                                                                                                                                
-
-    当被问到你记得哪些内容时，务必先使用 ls 和 read_file 检查记忆目录。                                                                                                                                     
-
-    引用文件路径时，请使用反引号格式，例如 `path/file.md`，而不要使用 markdown 链接。
-    所有的回答必须是中文                                                                                                                       
-    """,
-    checkpointer=checkpointer,
-    backend=scoped_backend,
-    store=scoped_store
-)
-print("\n")
-print("分级智能体创建成功：支持用户私有记忆与共享记忆！")
-print("\n")
-
-config_alice = {"configurable": {"thread_id": uuid7(), "user_id": "alice"}}
-
-result = scoped_agent.invoke(
-    {
-        "messages": [
-            {
-                "role": "user",
-                "content": """把这两条内容保存下来：                                                                                                                                                                                  
-  1. 保存到我的私有记忆（/memories/user/）：「Alice 偏好深色模式和 Python」                                                                                                                               
-  2. 保存到共享记忆（/memories/shared/）：「团队规范：始终编写单元测试」"""
-            }
-        ]
-    }, config=config_alice
-)
-
-print("\n")
-print("Alice 画像:", result["messages"][-1].content)
-print("\n")
-
-config_bob = {"configurable": {"thread_id": uuid7(), "user_id": "bob"}}
-result = scoped_agent.invoke(
-    {
-        "messages": [
-            {
-                "role": "user",
-                "content": "列出 /memories/user/ 和 /memories/shared/ 目录下的所有文件，以查看你可以访问的内容"
-            }
-        ]
-    }, config=config_bob
-)
-print("\n")
-print("Bob sees:\n", result["messages"][-1].content)
-print("\n" + "=" * 50)
-print("Bob 可以看到共享的指导规范，但看不到 Alice 的私有偏好设置！")
+  - 最多使用 2-3 次搜索                                                                                                                                                                                   
+  - 合并引用来源 —— 每个唯一 URL 只分配一个编号 [1]、[2]、[3]                                                                                                                                             
+  - 报告结尾附上「来源（Sources）」章节                                                                                                                                                                   
+  - 当被要求创建特定内容格式时，检查是否有可用的相关技能（skill）                                                                                                                                         
+  """
+print("Agent.md 已经创建完成")
