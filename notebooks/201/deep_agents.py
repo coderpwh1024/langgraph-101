@@ -2,6 +2,7 @@ import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
+from typing import final
 
 from deepagents import create_deep_agent
 from deepagents.backends import FilesystemBackend, CompositeBackend, StateBackend, StoreBackend
@@ -11,6 +12,7 @@ import os
 
 from deepagents.backends.utils import create_file_data
 from langchain.agents.middleware import wrap_tool_call
+from langchain_community.agent_toolkits.openapi.planner_prompt import API_CONTROLLER_TOOL_NAME
 from langchain_community.tools import EdenAiTextModerationTool
 from langgraph.store.memory import InMemoryStore
 from langchain_core.tools import tool
@@ -913,3 +915,26 @@ result = skill_agent.invoke(
 )
 print("\n")
 print(result["messages"][-1].content)
+print("\n")
+
+print("\n")
+print(
+    "-------------------------------------------09-complete research Agent------------------------------------------------------")
+print("\n")
+
+final_agent = create_deep_agent(
+    model=model,
+    tools=[tavily_search],
+    system_prompt="""你是一名专业的研究助理,所有的回答必须是中文""",
+    memory=["/AGENTS.md"],
+    skills=["/skills/"],
+    checkpointer=checkpointer,
+    backend=composite_backend,
+    store=store,
+)
+
+final_agent_files = {
+    "/AGENTS.md": create_file_data(agents_md_content),
+    "/skills/linkedin-post/SKILL.md": create_file_data(linkedin_skill_content),
+    "/skills/twitter-post/SKILL.md": create_file_data(twitter_skill_content),
+}
