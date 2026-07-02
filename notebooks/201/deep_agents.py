@@ -938,3 +938,5 @@ final_agent_files = {
     "/skills/linkedin-post/SKILL.md": create_file_data(linkedin_skill_content),
     "/skills/twitter-post/SKILL.md": create_file_data(twitter_skill_content),
 }
+print("\n")
+print("最终研究 Agent 已创建，包含 AGENTS.md + skills！")
