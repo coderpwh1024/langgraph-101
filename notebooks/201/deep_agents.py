@@ -9,6 +9,7 @@ import tempfile
 import shutil
 import os
 
+from deepagents.backends.utils import create_file_data
 from langchain.agents.middleware import wrap_tool_call
 from langchain_community.tools import EdenAiTextModerationTool
 from langgraph.store.memory import InMemoryStore
@@ -824,7 +825,7 @@ print(f"长度: {len(linkedin_skill_content)} chars")
 print("\n")
 
 # twitter skill md
-twitter_skill_content ="""
+twitter_skill_content = """
   ---                                                                                                                                                                                                     
   name: twitter-post                                                                                                                                                                                      
   description: 基于研究发现或给定主题撰写 Twitter/X 帖子或推文串（thread）。当被要求创作推文、X 帖子或社交媒体推文串时使用此技能。                                                                        
@@ -849,3 +850,66 @@ twitter_skill_content ="""
   - 有鲜明观点的表达比中立的总结表现更好                                                                                                                                                                  
   - 使用通俗易懂的语言——不要用官腔套话                                                                                                                                                                    
 """
+print("\n")
+print("Twitter/X 帖子技能已定义！\n")
+print(f"技能名称：twitter-post\n")
+print("\n")
+
+store = InMemoryStore()
+# agent 创建
+skill_agent = create_deep_agent(
+    model=model,
+    system_prompt="""你是一名专业的研究助理,所有的回答必须是中文""",
+    tools=[tavily_search],
+    memory=["/AGENTS.md"],
+    skills=["/skills/"],
+    checkpointer=checkpointer,
+    backend=composite_backend,
+    store=store,
+)
+
+# skill 与agent 绑定
+skill_files = {
+    "/AGENT.md": create_file_data(agents_md_content),
+    "/skills/linkedin-post/SKILL.md": create_file_data(linkedin_skill_content),
+    "/skills/twitter-post/SKILL.md": create_file_data(twitter_skill_content),
+}
+print("\n")
+print("已创建 Agent，包含 AGENTS.md + 2 个 skill！\n")
+print(f"  记忆：`/AGENTS.md`（始终加载）\n")
+print(f"  Skills：linkedin-post、twitter-post（按需加载）\n")
+print("\n")
+config = {"configurable": {"thread_id": uuid7()}}
+
+result = skill_agent.invoke({
+    "messages":
+        [
+            {
+                "role": "user",
+                "content": "研究一下什么是 AI 智能体（AI agents），然后就你的发现写一篇 LinkedIn 帖子"
+            }
+        ]
+    ,
+    "files": skill_files,
+
+}, config=config)
+
+print("\n")
+print(result["messages"][-1].content)
+print("\n")
+
+config = {"configurable": {"thread_id": uuid7()}}
+
+result = skill_agent.invoke(
+    {
+        "messages": [
+            {
+                "role": "user",
+                "content": "现在就同一主题写一个 Twitter/X 推文串（thread）"
+            }
+        ]
+    },
+    config=config
+)
+print("\n")
+print(result["messages"][-1].content)
