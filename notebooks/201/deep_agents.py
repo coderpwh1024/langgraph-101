@@ -947,7 +947,7 @@ config = {"configurable": {"thread_id": uuid7()}}
 print("开始执行研究工作流...\n")
 
 result = final_agent.invoke({
-    {
+
         "messages":[
             {
                 "role": "user",
@@ -955,7 +955,7 @@ result = final_agent.invoke({
             }
         ],
         "files":final_agent_files
-    }
+
 },config=config)
 
 print(result["messages"][-1].content[:2000])
