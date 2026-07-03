@@ -940,3 +940,26 @@ final_agent_files = {
 }
 print("\n")
 print("最终研究 Agent 已创建，包含 AGENTS.md + skills！")
+print("\n")
+
+config = {"configurable": {"thread_id": uuid7()}}
+
+print("开始执行研究工作流...\n")
+
+result = final_agent.invoke({
+    {
+        "messages":[
+            {
+                "role": "user",
+                "content": "研究什么是 LangChain Deep Agents，撰写一份简要报告，然后根据你的研究发现写一篇 LinkedIn 帖子"
+            }
+        ],
+        "files":final_agent_files
+    }
+},config=config)
+
+print(result["messages"][-1].content[:2000])
+print("\n")
+print("\n"+"="*60)
+print("📁 VIRTUAL FILESYSTEM")
+print("=" * 60)
