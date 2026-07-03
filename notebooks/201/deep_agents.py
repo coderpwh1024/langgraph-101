@@ -963,3 +963,13 @@ print("\n")
 print("\n"+"="*60)
 print("📁 VIRTUAL FILESYSTEM")
 print("=" * 60)
+
+for path ,file_data in result.get("files",{}).items():
+    if isinstance(file_data,dict) and "content" in file_data:
+        content="\n".join(file_data["content"])
+    else:
+        content=str(file_data)
+    print(f"\n📄 '{path}' ({len(content)} chars)")
+    print("-" * 40)
+    print(content[:500] + ("..." if len(content) > 500 else ""))
+
