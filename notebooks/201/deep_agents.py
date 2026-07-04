@@ -872,7 +872,7 @@ skill_agent = create_deep_agent(
 
 # skill 与agent 绑定
 skill_files = {
-    "/AGENT.md": create_file_data(agents_md_content),
+    "/AGENTS.md": create_file_data(agents_md_content),
     "/skills/linkedin-post/SKILL.md": create_file_data(linkedin_skill_content),
     "/skills/twitter-post/SKILL.md": create_file_data(twitter_skill_content),
 }
