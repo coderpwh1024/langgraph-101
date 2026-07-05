@@ -1,0 +1,164 @@
+# 本项目 Codex 命令规则（与 .claude/settings.json 权限对等还原）
+#
+# 语义：多规则命中取最严（forbidden > prompt > allow），
+# 因此下方 allow 的 `git push` 前缀不会放过 forbidden 的 force 变体。
+# 局限：prefix_rule 严格按 token 顺序前缀匹配，参数乱序存在盲区
+# （已显式覆盖 `origin` 在前的常见乱序位），沙箱 workspace-write 作兜底。
+# 回归验证：codex execpolicy check --rules .codex/rules/safety.rules <command...>
+
+# ---------- 硬禁止（对应 Claude deny 列表） ----------
+
+prefix_rule(
+    pattern = ["git", "push", ["--force", "-f", "--force-with-lease", "--force-if-includes"]],
+    decision = "forbidden",
+    justification = "禁止强制推送（对应 Claude deny: git push --force* / -f*）",
+    match = [
+        ["git", "push", "--force"],
+        ["git", "push", "-f"],
+        ["git", "push", "--force-with-lease"],
+    ],
+    not_match = [
+        ["git", "push"],
+        ["git", "push", "origin", "master"],
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "push", "origin", ["--force", "-f", "--force-with-lease", "--force-if-includes"]],
+    decision = "forbidden",
+    justification = "禁止强制推送（覆盖 remote 在前的乱序写法）",
+    match = [
+        ["git", "push", "origin", "--force"],
+        ["git", "push", "origin", "-f"],
+    ],
+    not_match = [
+        ["git", "push", "origin", "master"],
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "push", "origin", ["master", "HEAD"], ["--force", "-f", "--force-with-lease", "--force-if-includes"]],
+    decision = "forbidden",
+    justification = "禁止强制推送（覆盖 force 标志在分支名之后的乱序写法；本仓库默认分支 master）",
+    match = [
+        ["git", "push", "origin", "master", "--force"],
+        ["git", "push", "origin", "HEAD", "-f"],
+    ],
+    not_match = [
+        ["git", "push", "origin", "master"],
+    ],
+)
+
+# ⚠️ 剩余盲区：force 标志出现在未枚举的分支名之后（如 git push origin dev --force）
+# 会命中下方 git push 的 allow 前缀而放行。Claude 侧 allow "git push*" + deny
+# "git push --force*" 的组合存在完全相同的盲区，两侧一致；靠 AGENTS.md 指令软约束兜底。
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "禁止硬重置、丢弃工作区改动（对应 Claude deny: git reset --hard*）",
+    match = [
+        ["git", "reset", "--hard"],
+        ["git", "reset", "--hard", "HEAD~1"],
+    ],
+    not_match = [
+        ["git", "reset"],
+        ["git", "reset", "--soft", "HEAD~1"],
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "clean", ["-f", "-fd", "-fdx", "-fx", "-df", "-dfx", "--force"]],
+    decision = "forbidden",
+    justification = "禁止强制删除未跟踪文件（对应 Claude deny: git clean -f*）",
+    match = [
+        ["git", "clean", "-f"],
+        ["git", "clean", "-fd"],
+        ["git", "clean", "-fdx"],
+    ],
+    not_match = [
+        ["git", "clean", "-n"],
+        ["git", "clean", "--dry-run"],
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "clean", "-d", ["-f", "-fx", "--force"]],
+    decision = "forbidden",
+    justification = "禁止强制删除未跟踪文件（覆盖 -d 与 -f 分写的乱序写法）",
+    match = [
+        ["git", "clean", "-d", "-f"],
+    ],
+    not_match = [
+        ["git", "clean", "-d", "-n"],
+    ],
+)
+
+# ---------- 免审白名单（对应 Claude allow 列表） ----------
+
+prefix_rule(
+    pattern = ["git", ["status", "diff", "log", "show", "branch"]],
+    decision = "allow",
+    justification = "只读 git 命令免审（对应 Claude allow: git status/diff/log/show/branch）",
+    match = [
+        ["git", "status"],
+        ["git", "diff", "--stat"],
+        ["git", "log", "--oneline"],
+    ],
+    not_match = [
+        ["git", "rebase"],
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", ["add", "commit", "push"]],
+    decision = "allow",
+    justification = "常规提交/推送免审（对应 Claude allow: git add/commit/push；force 变体被上方 forbidden 压制）",
+    match = [
+        ["git", "add", "."],
+        ["git", "commit", "-m", "msg"],
+        ["git", "push"],
+    ],
+    not_match = [
+        ["git", "rebase"],
+    ],
+)
+
+prefix_rule(
+    pattern = [["pip", "pip3"], "install"],
+    decision = "allow",
+    justification = "依赖安装免审（对应 Claude allow: pip/pip3 install）",
+    match = [
+        ["pip", "install", "requests"],
+        ["pip3", "install", "requests"],
+    ],
+    not_match = [
+        ["pip", "uninstall", "requests"],
+    ],
+)
+
+prefix_rule(
+    pattern = ["python", "-m", "pip", "install"],
+    decision = "allow",
+    justification = "依赖安装免审（对应 Claude allow: python -m pip install）",
+    match = [
+        ["python", "-m", "pip", "install", "requests"],
+    ],
+    not_match = [
+        ["python", "-m", "pip", "uninstall", "requests"],
+    ],
+)
+
+prefix_rule(
+    pattern = ["uv", ["add", "remove", "sync", "lock", "pip", "venv"]],
+    decision = "allow",
+    justification = "uv 依赖/环境管理免审（对应 Claude allow: uv add/remove/sync/lock/pip/venv）",
+    match = [
+        ["uv", "add", "requests"],
+        ["uv", "sync"],
+        ["uv", "pip", "install", "requests"],
+    ],
+    not_match = [
+        ["uv", "run", "python"],
+    ],
+)

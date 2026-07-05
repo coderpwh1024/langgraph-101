@@ -216,14 +216,25 @@ query = f"SELECT CustomerId FROM Customer WHERE Phone = '{identifier}'"
 
 ### 1. 禁止执行的命令
 
-本项目在 Claude Code 中通过 `.claude/settings.json` 的 deny 规则硬性拦截以下命令。
-Codex 没有项目级命令拦截机制，因此在此以指令形式约束，**任何情况下不得主动执行**：
+本项目在 Claude Code 中通过 `.claude/settings.json` 的 deny 规则硬性拦截以下命令，
+Codex 侧已用 `.codex/rules/safety.rules` 对等还原（含免审白名单）。
+此处的指令约束仍然有效，**任何情况下不得主动执行**：
 
 - `git push --force` / `git push -f`（禁止强制推送）
 - `git reset --hard`（禁止硬重置、丢弃工作区改动）
 - `git clean -f`（禁止强制删除未跟踪文件）
 
 如确有必要执行上述操作，必须先向用户说明原因并获得明确同意。
+
+关于 `.codex/rules/safety.rules` 的三点注意：
+
+- rules 属**实验性功能**，且项目级 `.codex/` 层仅在项目被标记 trusted 时加载；
+- 前缀匹配存在参数乱序盲区（常见乱序位已显式覆盖，未枚举分支名的
+  `git push origin <branch> --force` 仍会漏过），本指令软约束是最终防线；
+- 修改规则后用 `codex execpolicy check --rules .codex/rules/safety.rules <command...>`
+  逐条回归；`execpolicy check` 只是离线验证文件本身，规则在真实会话生效
+  需**重启 Codex**（官方明确，且无查询"会话已加载哪些规则"的命令，
+  `match`/`not_match` 内联自测会在加载时自动校验）。
 
 ### 2. 项目技能（Skills）
 
