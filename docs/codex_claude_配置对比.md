@@ -80,7 +80,7 @@ langgraph-101/
 
 | Claude 本地权限 | Codex 官方对位 | 状态 |
 | --- | --- | --- |
-| `Bash(cat)`、`Bash(patch -p1)`、`Bash(codex features/doctor/debug/execpolicy *)` | `~/.codex/rules/local-allow.rules`（用户级 allow 规则，注意跨项目全局生效） | ✅ 已落地并回归 |
+| `Bash(cat)`、`Bash(patch -p1)`、`Bash(codex features/doctor/debug/execpolicy *)` | `~/.codex/rules/local-allow.rules`（用户级 allow 规则，注意跨项目全局生效） | ✅ 已落地并回归。⚠️ 语义差异：Claude 不带 `*` 的 `Bash(cat)`/`Bash(patch -p1)` 是**精确匹配**，prefix_rule 只有前缀语义，Codex 侧放行范围略宽（`cat <file>` 等带参形式也免审），评估为低风险接受 |
 | `WebSearch` | `~/.codex/config.toml` 顶层 `web_search = "live"`（现行规范键，默认 `"cached"` 只查缓存索引）+ `[tools] web_search = true`（legacy 布尔写法，双写兼容） | ✅ 已启用，`codex doctor` 确认 config 解析正常 |
 | `Read(//Users/coderpwh/**)` 等读路径授权 | **无需配置**：Codex 沙箱默认全盘可读、只限制写入与网络 | ✅ 天然满足 |
 | `WebFetch(domain:raw.githubusercontent.com)`、`WebFetch(domain:developers.openai.com)` | 域名级控制官方有两处：① Beta `[permissions]` 网络规则（`"*.example.com"` 语法，语义是**放行**指定域）；② `tools.web_search` 对象形式的 `allowed_domains`（语义是把搜索**收紧**到指定域，与 Claude 的"额外放行"方向相反，不适用）。prefix_rule 无法对 URL token 做域名匹配 | ⏸️ 未启用：①与 `sandbox_mode` 互斥且为 Beta，为两个域名切换整套体系不划算；②语义不符。实际访问时走审批，TUI 点"允许"会自动持久化到 `~/.codex/rules/default.rules` |

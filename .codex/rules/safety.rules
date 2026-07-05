@@ -68,13 +68,15 @@ prefix_rule(
 )
 
 prefix_rule(
-    pattern = ["git", "clean", ["-f", "-fd", "-fdx", "-fx", "-df", "-dfx", "--force"]],
+    pattern = ["git", "clean", ["-f", "-fd", "-fdx", "-fx", "-df", "-dfx", "-ff", "-ffd", "-ffdx", "--force"]],
     decision = "forbidden",
-    justification = "禁止强制删除未跟踪文件（对应 Claude deny: git clean -f*）",
+    justification = "禁止强制删除未跟踪文件（对应 Claude deny: git clean -f*；-ff 系会连嵌套 git 仓库一并删除）",
     match = [
         ["git", "clean", "-f"],
         ["git", "clean", "-fd"],
         ["git", "clean", "-fdx"],
+        ["git", "clean", "-ff"],
+        ["git", "clean", "-ffd"],
     ],
     not_match = [
         ["git", "clean", "-n"],
