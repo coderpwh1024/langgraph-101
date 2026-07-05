@@ -10,7 +10,7 @@ elements:
   emphasis: underline + coral-red accent
   typography: handwritten
 layout: dense / flow
-image_count: 6
+image_count: 7
 language: zh
 ---
 
@@ -48,7 +48,14 @@ language: zh
 **Visual**: 左 Alice 右 Bob 各自私有抽屉(带锁🔒不互通)，中间一个共享抽屉(两人都能拿)；高亮一行 lambda rt
 **Layout**: flow
 
-## P6 关键要点回顾（结尾）
+## P6 三个维度辨析 checkpointer vs thread_id vs namespace
+**Type**: content
+**Message**: 三件事是三个维度，不是包含关系（本块唯一难点）
+**Points**: checkpointer=拍快照存档·管「会不会丢」(内存版临时/落盘版持久) ; thread_id=选读哪份存档·管「读谁的会话」 ; namespace=store里按用户分抽屉·管「哪个用户的长期记忆」 ; 难点：没checkpointer=根本没存档，换thread=读错了存档，原因不同
+**Visual**: 三张并排竖卡(相机📷/号码牌/贴标签抽屉)，下方珊瑚红虚线框画双格对比(打叉相机 vs 两个号码牌)，结论一行「先存档→再选编号」
+**Layout**: dense
+
+## P7 关键要点回顾（结尾）
 **Type**: ending
 **Message**: 三级递进 + 一句话总结
 **Points**: ①四种Backend各司其职 ②CompositeBackend按前缀路由 ③namespace分桶三类记忆 ④lambda rt按user_id隔离 ; 主线：routing→静态namespace→动态namespace
