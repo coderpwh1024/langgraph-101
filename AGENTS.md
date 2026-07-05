@@ -227,12 +227,15 @@ Codex 没有项目级命令拦截机制，因此在此以指令形式约束，**
 
 ### 2. 项目技能（Skills）
 
-本仓库的项目级技能位于 `.codex/skills/`（与 `.claude/skills/` 内容同源）：
+本仓库的项目级技能位于 `.agents/skills/`（Codex 官方最新规范的项目技能路径，
+与 `.claude/skills/` 内容同源）：
 
 - `tech-summary`：为学习模块 `.py` 生成中文技术总结文档
 - `export-graphs`：确定性导出 LangGraph 拓扑 PNG（零 LLM 调用）
 - `new-module`：按 101/201 约定脚手架新学习模块
 - `cards-from-summary`：把技术总结转成图文卡片系列
-  （注意：该技能依赖 Claude 侧的 baoyu-image-cards 流水线，在 Codex 中可能不可用）
+  （依赖用户级技能 baoyu-image-cards，本机安装于 `~/.agents/skills/`，Codex 可正常发现；
+  换新机器使用前需先安装该技能）
 
-两侧技能内容需保持同步：修改 `.claude/skills/` 后，应同步更新 `.codex/skills/`。
+两侧技能内容需保持同步：修改 `.claude/skills/` 后，应同步更新 `.agents/skills/`
+（注意 Codex 侧 SKILL.md frontmatter 仅支持 `name` 和 `description` 两个字段）。
