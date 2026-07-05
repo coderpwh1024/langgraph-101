@@ -209,3 +209,30 @@ query = f"SELECT CustomerId FROM Customer WHERE Phone = '{identifier}'"
 - [ ] 提示词标签成对闭合、中文为主
 - [ ] LangGraph 构图顺序规范、路由字符串与映射一致
 - [ ] 缩进 4 空格、行长合规、空行规范
+
+---
+
+## 六、Codex 适配说明
+
+### 1. 禁止执行的命令
+
+本项目在 Claude Code 中通过 `.claude/settings.json` 的 deny 规则硬性拦截以下命令。
+Codex 没有项目级命令拦截机制，因此在此以指令形式约束，**任何情况下不得主动执行**：
+
+- `git push --force` / `git push -f`（禁止强制推送）
+- `git reset --hard`（禁止硬重置、丢弃工作区改动）
+- `git clean -f`（禁止强制删除未跟踪文件）
+
+如确有必要执行上述操作，必须先向用户说明原因并获得明确同意。
+
+### 2. 项目技能（Skills）
+
+本仓库的项目级技能位于 `.codex/skills/`（与 `.claude/skills/` 内容同源）：
+
+- `tech-summary`：为学习模块 `.py` 生成中文技术总结文档
+- `export-graphs`：确定性导出 LangGraph 拓扑 PNG（零 LLM 调用）
+- `new-module`：按 101/201 约定脚手架新学习模块
+- `cards-from-summary`：把技术总结转成图文卡片系列
+  （注意：该技能依赖 Claude 侧的 baoyu-image-cards 流水线，在 Codex 中可能不可用）
+
+两侧技能内容需保持同步：修改 `.claude/skills/` 后，应同步更新 `.codex/skills/`。
