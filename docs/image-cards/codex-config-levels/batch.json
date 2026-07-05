@@ -1,0 +1,69 @@
+{
+  "jobs": 4,
+  "tasks": [
+    {
+      "id": "01-cover",
+      "promptFiles": ["prompts/01-cover-codex-config-levels.md"],
+      "image": "01-cover-codex-config-levels.png",
+      "provider": "dashscope",
+      "model": "qwen-image-2.0-pro",
+      "size": "1080x1440"
+    },
+    {
+      "id": "02-content",
+      "promptFiles": ["prompts/02-content-codex-config-levels.md"],
+      "image": "02-content-codex-config-levels.png",
+      "provider": "dashscope",
+      "model": "qwen-image-2.0-pro",
+      "size": "1080x1440"
+    },
+    {
+      "id": "03-content",
+      "promptFiles": ["prompts/03-content-codex-config-levels.md"],
+      "image": "03-content-codex-config-levels.png",
+      "provider": "dashscope",
+      "model": "qwen-image-2.0-pro",
+      "size": "1080x1440"
+    },
+    {
+      "id": "04-content",
+      "promptFiles": ["prompts/04-content-codex-config-levels.md"],
+      "image": "04-content-codex-config-levels.png",
+      "provider": "dashscope",
+      "model": "qwen-image-2.0-pro",
+      "size": "1080x1440"
+    },
+    {
+      "id": "05-content",
+      "promptFiles": ["prompts/05-content-codex-config-levels.md"],
+      "image": "05-content-codex-config-levels.png",
+      "provider": "dashscope",
+      "model": "qwen-image-2.0-pro",
+      "size": "1080x1440"
+    },
+    {
+      "id": "06-content",
+      "promptFiles": ["prompts/06-content-codex-config-levels.md"],
+      "image": "06-content-codex-config-levels.png",
+      "provider": "dashscope",
+      "model": "qwen-image-2.0-pro",
+      "size": "1080x1440"
+    },
+    {
+      "id": "07-content",
+      "promptFiles": ["prompts/07-content-codex-config-levels.md"],
+      "image": "07-content-codex-config-levels.png",
+      "provider": "dashscope",
+      "model": "qwen-image-2.0-pro",
+      "size": "1080x1440"
+    },
+    {
+      "id": "08-ending",
+      "promptFiles": ["prompts/08-ending-codex-config-levels.md"],
+      "image": "08-ending-codex-config-levels.png",
+      "provider": "dashscope",
+      "model": "qwen-image-2.0-pro",
+      "size": "1080x1440"
+    }
+  ]
+}
