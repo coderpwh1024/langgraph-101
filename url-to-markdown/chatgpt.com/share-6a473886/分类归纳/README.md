@@ -17,6 +17,7 @@
 | 03 | [飞书接入与需求评审 Skill](03-飞书接入与需求评审skill.md) | 第 61~82 问 | 飞书企业自建应用与多 AppID 隔离切换；WebSocket vs Webhook 通道选择；需求评审五层提示词约束；五大标准 SKILL.md（pm-review / code-review / architecture 等，含 frontmatter 格式演进）；HipobuyAgent 命名；四阶段落地路线 |
 | 04 | [SOUL.md 配置、使用手册与汇报](04-soul配置-使用手册与汇报.md) | 第 83~105 问 | SOUL.md 的定位与推荐结构；修改未生效排查（含 SOLU.md 拼写坑与缓存重置）；去 Hermes 化身份覆盖；使用手册「模板 + 截图 + 摘要结论」写法（领导发 PDF、研发发 md）；飞书汇报话术模板与时机选择 |
 | 05 | [性能优化与体验评估](05-性能优化与体验评估.md) | 第 106~127 问 | 慢的根因：多轮 `execute_code` 占总耗时 50%~70%；企业响应时间分级标准；优化优先级（聚合检索脚本 → SOUL.md 导航化 → 双评审模式 → SQLite 代码索引 → 立即反馈）；系统 V1 试点评分；工时评估拆分总工时（Person Hour）vs 交付周期（Elapsed Time） |
+| 06 | [脚本汇总与说明](06-脚本汇总与说明.md) | 全对话 | 对话中全部脚本的独立收录与逐一说明：Docker 部署/gateway 命令与 compose、`update-all.sh` + crontab 同步、`gitlab-api.sh` API 封装、Webhook 接收服务（server.py + systemd）、Flask MR 评审片段、Skill 目录初始化、`analyze_requirement.py` v2 全文、SQLite 代码索引设计 |
 
 ## 每篇文档的固定结构
 
