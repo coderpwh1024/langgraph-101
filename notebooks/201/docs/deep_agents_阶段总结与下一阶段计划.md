@@ -492,8 +492,8 @@ langgraph.json
 
 - `deep_agents_学习路线.md`：已标记 A→E 首轮完成，并补充当前验收状态与下一轮复习路线
 - `deep_agents_检测薄弱点与标准答案.md`：暂不改动，保留原检测题版本
-- `deep_agents_技术总结.md`：已完成（另一窗口异步生成中，
-  内容底稿见 `notebooks/201/image-cards/deep-agents/source-deep-agents.md`）
+- `deep_agents_技术总结.md`：已完成并通过校对归档（行号、代码事实、
+  可疑点均已核实，`py_compile` 声明属实）
 - 路由判断实操练习（费曼检测遗留项）：已完成，遗留清零
 
 学习目标：
@@ -513,7 +513,7 @@ langgraph.json
 | P1（已完成） | 为 `StoreBackend` 补显式 `namespace` | 消除 deepagents 0.7.0 弃用风险 | 已改为显式 namespace，不再依赖默认行为 |
 | P2（已完成） | 补 Middleware 上下文管理实验 | 路线中最密的硬概念岛 | 已能对比旧 `ToolMessage` 清理前后状态变化 |
 | P2（部分完成） | 清理 `deep_agents.py` import 与结构 | 降低复习和维护成本 | import 已清理，阶段结构仍待继续整理 |
-| P3（已完成） | 更新总结、路线、检测题 | 固化学习成果 | 学习路线已更新，技术总结已在另一窗口异步生成，路由判断实操练习已完成，检测题暂不改动 |
+| P3（已完成） | 更新总结、路线、检测题 | 固化学习成果 | 学习路线已更新，技术总结已归档并校对，图文卡片已提交，路由判断实操练习已完成，检测题暂不改动 |
 
 ---
 
@@ -522,13 +522,13 @@ langgraph.json
 当前推荐按以下顺序继续推进：
 
 1. 整理 `deep_agents.py` 中已验收实验的结构，降低复习成本。
-2. ~~生成 `deep_agents_技术总结.md`~~（已完成，另一窗口异步生成中）。
+2. ~~生成 `deep_agents_技术总结.md`~~（已完成，归档并校对）。
 3. ~~补做路由判断实操练习~~（已完成，费曼检测遗留清零）。
 
 不要同时推进太多概念。下一阶段的核心不是“学更多”，而是把以下剩余事项钉死：
 
-- `deep_agents.py` 中已验收实验的结构化整理（唯一剩余项）
-- `deep_agents_技术总结.md` 生成完成后做一次校对归档
+- `deep_agents.py` 中已验收实验的结构化整理（唯一剩余项，
+  建议与恢复 `agents/deep_agent/` Studio 工程化目标合并完成）
 
 ---
 
@@ -538,6 +538,7 @@ langgraph.json
 
 P0 的 `/memories/` 路由、skills / AGENTS.md 生命周期，P1 的 HITL
 resume 与 `StoreBackend` namespace，以及 P2 的 Middleware 对照实验
-已经通过实验验收。路由判断实操练习与技术总结均已完成（后者在另一
-窗口异步生成）。Studio 版 Deep Agent 暂时废弃，剩余唯一事项是
-`deep_agents.py` 教学脚本的结构化整理。
+已经通过实验验收。路由判断实操练习、技术总结（已校对归档）与图文
+卡片（10 张已提交）均已完成，本阶段正式收官。剩余唯一事项是
+`deep_agents.py` 教学脚本的结构化整理，建议与下一阶段恢复
+`agents/deep_agent/` Studio 工程化目标时合并完成。
