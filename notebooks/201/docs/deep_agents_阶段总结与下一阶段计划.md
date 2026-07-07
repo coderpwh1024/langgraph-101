@@ -102,11 +102,12 @@
 
 - 使用 `@wrap_tool_call` 编写 `log_tool_calls`
 - 打印工具名、参数和完成状态
+- 使用 `ClearToolUsesEdit` 演示上下文编辑
+- 对比 `ToolMessage` 清理前后的状态变化
 
 当前状态：
 
-- 只完成了自定义 logging middleware
-- 尚未完成“自动上下文管理”的对照实验
+- logging middleware 与上下文管理对照实验均已跑通
 
 ### 5. HITL 示例
 
@@ -310,19 +311,23 @@ StoreBackend(
 
 > `StoreBackend` 不再依赖 deepagents 0.7.0 的默认 namespace 行为。
 
-### P2：Middleware 只完成了 logging，缺少上下文管理对照
+### P2：Middleware logging 与上下文管理对照已完成（已完成）
 
 路线文档中 Middleware 是最密的硬概念岛。
 
-当前只完成：
+已完成：
 
-- 工具调用日志 middleware
+- 工具调用日志 middleware：已能打印 `tavily_search` 与 `write_file`
+  的工具名和参数
+- 上下文编辑实验：已能看到旧 `ToolMessage` 被替换为 `[cleared]`，
+  最新工具结果被保留
+- 对照结论：middleware 改的是进入模型前的 `messages`，不是 backend、
+  store 或工具本身
 
-还缺：
+仍可后续扩展：
 
-- 自动上下文管理的输入/输出卸载实验
 - 对话摘要或上下文压缩实验
-- middleware 前后状态差异对比
+- 去掉 middleware 后再跑一次真实 Agent，对比完整 trace 差异
 
 ### P2：脚本工程质量需要清理
 
@@ -461,17 +466,23 @@ langgraph.json
 > 调试能力，再单独恢复该目标，并先补齐 `langgraph-cli[inmem]`、
 > `langgraph.json`、LangSmith 配置与可导入的 `agent` 入口。
 
-### 目标 4：补 Middleware 对照实验
+### 目标 4：补 Middleware 对照实验（已完成）
 
-要补的内容：
+已完成的内容：
 
 - logging middleware：观察工具调用
-- 上下文卸载或摘要 middleware：观察 messages / files / todos 的变化
-- 去掉 middleware 后再跑一次，对比差异
+- context editing：观察 `ToolMessage` 清理前后的变化
+- 明确对照结论：middleware 影响的是进入模型前的 `messages`
 
 学习目标：
 
 > 不只知道 middleware 能加，而是能说清它改变了哪一层信息流。
+
+验收结论：
+
+- `log_tool_calls` 已打印 `tavily_search` 与 `write_file` 的调用参数
+- `ClearToolUsesEdit(trigger=1, keep=1)` 已将旧工具结果清理为 `[cleared]`
+- 最新工具结果保留，证明上下文编辑策略按预期生效
 
 ### 目标 5：更新复盘资料
 
@@ -496,7 +507,7 @@ langgraph.json
 | P1（已完成） | 跑通 HITL approve / reject / edit / resume | Deep Agents 生产工作流核心能力 | 已能打印 interrupt payload，并用同一 config resume |
 | P1（暂时废弃） | 搭建 `agents/deep_agent/` Studio 版 | 需要引入 LangGraph CLI / Studio 工程形态，当前阶段暂不推进 | 不验收 |
 | P1（已完成） | 为 `StoreBackend` 补显式 `namespace` | 消除 deepagents 0.7.0 弃用风险 | 已改为显式 namespace，不再依赖默认行为 |
-| P2 | 补 Middleware 上下文管理实验 | 路线中最密的硬概念岛 | 能对比 middleware 前后状态变化 |
+| P2（已完成） | 补 Middleware 上下文管理实验 | 路线中最密的硬概念岛 | 已能对比旧 `ToolMessage` 清理前后状态变化 |
 | P2（部分完成） | 清理 `deep_agents.py` import 与结构 | 降低复习和维护成本 | import 已清理，阶段结构仍待继续整理 |
 | P3 | 更新总结、路线、检测题 | 固化学习成果 | 文档能指导下一轮自测 |
 
@@ -507,13 +518,11 @@ langgraph.json
 当前推荐按以下顺序继续推进：
 
 1. 整理 `deep_agents.py` 中已验收实验的结构，降低复习成本。
-2. 补 Middleware 上下文管理对照实验。
-3. 最后再更新学习路线与技术总结。
+2. 最后再更新学习路线与技术总结。
 
 不要同时推进太多概念。下一阶段的核心不是“学更多”，而是把以下剩余事项钉死：
 
 - `deep_agents.py` 中已验收实验的结构化整理
-- Middleware 上下文管理对照实验
 
 ---
 
@@ -521,7 +530,7 @@ langgraph.json
 
 当前已经完成 deep_agents 的**首轮贯通**。
 
-P0 的 `/memories/` 路由、skills / AGENTS.md 生命周期，以及 P1 的
-HITL resume 与 `StoreBackend` namespace 已经通过实验验收。Studio 版
-Deep Agent 暂时废弃，下一阶段重点转向整理教学脚本、补 Middleware
-对照实验，并更新复盘资料。
+P0 的 `/memories/` 路由、skills / AGENTS.md 生命周期，P1 的 HITL
+resume 与 `StoreBackend` namespace，以及 P2 的 Middleware 对照实验
+已经通过实验验收。Studio 版 Deep Agent 暂时废弃，下一阶段重点转向
+整理教学脚本并更新复盘资料。

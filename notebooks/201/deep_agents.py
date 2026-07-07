@@ -12,7 +12,9 @@ from deepagents.backends import FilesystemBackend
 from deepagents.backends import StateBackend
 from deepagents.backends import StoreBackend
 from dotenv import load_dotenv
-from langchain.agents.middleware import wrap_tool_call
+from langchain.agents.middleware import wrap_tool_call, ClearToolUsesEdit
+from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.messages.utils import count_tokens_approximately
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.store.memory import InMemoryStore
@@ -315,7 +317,7 @@ agent = create_deep_agent(
         default=StateBackend(),
         routes={
             "/memories/": StoreBackend(
-                namespace=lambda runtime:(
+                namespace=lambda runtime: (
                     "deep_agents",
                     "basic_memory",
                     "memories",
@@ -419,32 +421,31 @@ print(
 
 config = {"configurable": {"thread_id": uuid7()}}
 
+result = agent.invoke(
+    {
+        "messages": [
+            {
+                "role": "user",
+                "content": "我来用任务列表创建一个调研机器学习框架的计划"
+            }
+        ]
+    },
+    config=config
+)
 
-# result = agent.invoke(
-#     {
-#         "messages": [
-#             {
-#                 "role": "user",
-#                 "content": "我来用任务列表创建一个调研机器学习框架的计划"
-#             }
-#         ]
-#     },
-#     config=config
-# )
-#
-# print("\n")
-# print(result["messages"][-1].content)
+print("\n")
+print(result["messages"][-1].content)
 
-# if "todos" in result:
-#     print("Agent Todo List:\n")
-#     for todo in result["todos"]:
-#         status_map = {"completed": "✅", "in_progress": "🔄", "pending": "⬚"}
-#         status = todo.get("status", "pending")
-#         icon = status_map.get(status, "⬚")
-#         content = todo.get("content", str(todo))
-#         print(f"{icon} {content}")
-# else:
-#     print("状态中没有 todos（智能体可能使用了其他方式）")
+if "todos" in result:
+    print("Agent Todo List:\n")
+    for todo in result["todos"]:
+        status_map = {"completed": "✅", "in_progress": "🔄", "pending": "⬚"}
+        status = todo.get("status", "pending")
+        icon = status_map.get(status, "⬚")
+        content = todo.get("content", str(todo))
+        print(f"{icon} {content}")
+else:
+    print("状态中没有 todos（智能体可能使用了其他方式）")
 
 
 # 工具调用
@@ -461,29 +462,74 @@ def log_tool_calls(request, handler):
     return result
 
 
-# agent_with_loggin = create_deep_agent(
-#     model=model,
-#     tools=[tavily_search],
-#     system_prompt="你是一个有用的研究助手。在引用文件路径时，请使用反引号格式，如 path/file.md，而不是 markdown 链接。回答必须用中文回答",
-#     middleware=[log_tool_calls],
-#     checkpointer=MemorySaver()
-# )
 
-# config = {"configurable": {"thread_id": uuid7()}}
+def demonstrate_context_editing() -> None:
+    """演示上下文编辑如何清理旧的工具结果。"""
 
-# result = agent_with_loggin.invoke({
-#
-#     "messages": [
-#         {
-#             "role": "user",
-#             "content": "什么是 LangGraph？请在你的文件系统中创建一份简短的总结"
-#         }
-#     ]
-# }, config=config)
-# print("\n")
-# print("\n--- Agent Response ---")
-# print(result["messages"][-1].content)
-# print("\n")
+    messages = [
+        AIMessage(content="", tool_calls=[{
+            "name": "tavily_search",
+            "args": {"query": "first query"},
+            "id": "call_1",
+            "type": "tool_call"
+        }], ),
+        ToolMessage(content="第一条很长的搜索结果，会被清理", name="tavily_search", tool_call_id="call_1"),
+        AIMessage(content="", tool_calls=[
+            {
+                "name": "tavily_search",
+                "args": {"query": "second query"},
+                "id": "call_2",
+                "type": "tool_call"
+            }
+        ]),
+        ToolMessage(content="第二条较新的搜索结果，会被保留", name="tavily_search", tool_call_id="call_2")
+    ]
+
+    print("\n")
+    print("上下文编辑前")
+    print("\n")
+
+    for message in messages:
+        if isinstance(message,ToolMessage):
+            print(f"- {message.tool_call_id}: {message.content}")
+
+    edit = ClearToolUsesEdit(trigger=1, keep=1)
+    edit.apply(messages, count_tokens=count_tokens_approximately)
+
+    print("\n")
+    print("上下文编辑后")
+    print("\n")
+    for message in messages:
+        if isinstance(message, ToolMessage):
+            print(f"- {message.tool_call_id}: {message.content}")
+
+
+
+demonstrate_context_editing()
+
+agent_with_loggin = create_deep_agent(
+    model=model,
+    tools=[tavily_search],
+    system_prompt="你是一个有用的研究助手。在引用文件路径时，请使用反引号格式，如 path/file.md，而不是 markdown 链接。回答必须用中文回答",
+    middleware=[log_tool_calls],
+    checkpointer=MemorySaver()
+)
+
+config = {"configurable": {"thread_id": uuid7()}}
+
+result = agent_with_loggin.invoke({
+
+    "messages": [
+        {
+            "role": "user",
+            "content": "什么是 LangGraph？请在你的文件系统中创建一份简短的总结"
+        }
+    ]
+}, config=config)
+print("\n")
+print("\n--- Agent Response ---")
+print(result["messages"][-1].content)
+print("\n")
 
 print("\n")
 print(
@@ -506,7 +552,6 @@ agent_with_hitl = create_deep_agent(
 
 config = {"configurable": {"thread_id": uuid7()}}
 
-
 result = agent_with_hitl.invoke(
     {
         "messages": [
@@ -523,7 +568,6 @@ result = agent_with_hitl.invoke(
     config=config
 )
 
-
 if result.get("__interrupt__"):
     print("🛑 中断已触发！\n")
     interrupt_value = result["__interrupt__"][0].value
@@ -538,7 +582,6 @@ if result.get("__interrupt__"):
 else:
     print("没有触发中断！")
     print(result["messages"][-1].content)
-
 
 print("\n")
 if result.get("__interrupt__"):
@@ -563,7 +606,6 @@ if result.get("__interrupt__"):
     )
     print("已编辑工具调用，继续执行！")
     print(result["messages"][-1].content)
-
 
 print("\n")
 print(
