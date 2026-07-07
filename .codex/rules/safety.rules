@@ -164,3 +164,19 @@ prefix_rule(
         ["uv", "run", "python"],
     ],
 )
+
+# ---------- baoyu-imagine 图片生成 ----------
+prefix_rule(
+    pattern = [
+        "bun",
+        "/Users/coderpwh/.agents/skills/baoyu-imagine/scripts/main.ts",
+    ],
+    decision = "allow",
+    justification = "允许 baoyu-imagine 联网调用 DashScope 图片生成 API",
+    match = [
+        "bun /Users/coderpwh/.agents/skills/baoyu-imagine/scripts/main.ts --provider dashscope",
+    ],
+    not_match = [
+        "bun /Users/coderpwh/.agents/skills/other/scripts/main.ts",
+    ],
+)
