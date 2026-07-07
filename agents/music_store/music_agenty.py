@@ -1,10 +1,11 @@
 import ast
-from typing import TypedDict, Annotated, NotRequired
+from typing import Annotated, Literal, NotRequired, TypedDict
 
 from langchain_community.utilities import SQLDatabase
 from langchain_core.messages import AnyMessage, SystemMessage
 from langchain_core.tools import tool
-from langgraph.graph import add_messages
+from langgraph.constants import END, START
+from langgraph.graph import add_messages, StateGraph
 from langgraph.managed import RemainingSteps
 from langgraph.prebuilt import ToolNode
 from utils.models import model
@@ -160,3 +161,39 @@ def music_assistant(state: State):
     response=llm_with_music_tools.invoke([SystemMessage(music_assistant_prompt)]+state["messages"])
 
     return {"messages":[response]}
+
+
+# 继续
+def should_continue(state: State) -> Literal["continue", "end"]:
+    """根据最后一条消息判断是否继续调用工具。"""
+    messages = state["messages"]
+    last_message = messages[-1]
+
+    if not last_message.tool_calls:
+        return "end"
+
+    return "continue"
+
+
+music_workflow = StateGraph(State, input_schema=InputState)
+
+music_workflow.add_node("music_assistant", music_assistant)
+music_workflow.add_node("music_tool_node", music_tool_node)
+
+
+# 添加边
+music_workflow.add_edge(START, "music_assistant")
+
+# 添加条件边
+music_workflow.add_conditional_edges(
+    "music_assistant",
+    should_continue,
+    {
+        "continue": "music_tool_node",
+        "end": END,
+    },
+)
+
+music_workflow.add_edge("music_tool_node", "music_assistant")
+
+graph = music_workflow.compile(name="music_catalog_subagent")
