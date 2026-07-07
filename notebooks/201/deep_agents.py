@@ -317,7 +317,12 @@ agent = create_deep_agent(
     backend=CompositeBackend(
         default=StateBackend(),
         routes={
-            "/memories/": StoreBackend(),
+            "/memories/": StoreBackend(
+                namespace=lambda runtime:(
+                    "deep_agents",
+                    "basic_memory",
+                    "memories",
+                )),
         }
     ),
     store=InMemoryStore()
@@ -496,58 +501,58 @@ interrupt_on = {
 }
 
 # 创建 agent
-# agent_with_hitl = create_deep_agent(
-#     model=model,
-#     tools=[tavily_search],
-#     system_prompt="你是一个乐于助人的研究助手。在引用文件路径时，请使用反引号格式，如 `path/file.md`，而不是 Markdown 链接,所有的回答必须使用中文",
-#     subagents=[research_subagent],
-#     checkpointer=MemorySaver(),
-#     interrupt_on={
-#         "write_file": True,
-#         "edit_file": True,
-#     }
-# )
+agent_with_hitl = create_deep_agent(
+    model=model,
+    tools=[tavily_search],
+    system_prompt="你是一个乐于助人的研究助手。在引用文件路径时，请使用反引号格式，如 `path/file.md`，而不是 Markdown 链接,所有的回答必须使用中文",
+    subagents=[research_subagent],
+    checkpointer=MemorySaver(),
+    interrupt_on={
+        "write_file": True,
+        "edit_file": True,
+    }
+)
 
-# config = {"configurable": {"thread_id": uuid7()}}
-
-
-# result = agent_with_hitl.invoke(
-#     {
-#         "messages": [
-#             {
-#                 "role": "user",
-#                 "content": "写入一个名为 /test.md 的文件，内容为 'Hello World'"
-#             }
-#         ]
-#     },
-#     config=config
-# )
+config = {"configurable": {"thread_id": uuid7()}}
 
 
-# if result.get("__interrupt__"):
-#     print("🛑 中断已触发！\n")
-#     interrupt_value = result["__interrupt__"][0].value
-#     action_requests = interrupt_value["action_requests"]
-#     review_configs = interrupt_value["review_configs"]
-#
-#     for action,review in zip(action_requests,review_configs):
-#         print(f"  工具:{action['name']}")
-#         print(f"  工具参数:{action['args']}")
-#         print(f"  允许的决策:{review['allowed_decisions']}")
-#
-# else:
-#    print("没有触发中断！")
-#    print(result["messages"][-1].content)
+result = agent_with_hitl.invoke(
+    {
+        "messages": [
+            {
+                "role": "user",
+                "content": "写入一个名为 /test.md 的文件，内容为 'Hello World'"
+            }
+        ]
+    },
+    config=config
+)
 
 
-# print("\n")
-# if result.get("__interrupt__"):
-#     result=agent_with_hitl.invoke(
-#         Command(resume={"decisions": [{"type": "approve"}]}),
-#         config=config
-#     )
-#     print("✅ 已获批准，继续执行！")
-#     print(result["messages"][-1].content)
+if result.get("__interrupt__"):
+    print("🛑 中断已触发！\n")
+    interrupt_value = result["__interrupt__"][0].value
+    action_requests = interrupt_value["action_requests"]
+    review_configs = interrupt_value["review_configs"]
+
+    for action,review in zip(action_requests,review_configs):
+        print(f"  工具:{action['name']}")
+        print(f"  工具参数:{action['args']}")
+        print(f"  允许的决策:{review['allowed_decisions']}")
+
+else:
+   print("没有触发中断！")
+   print(result["messages"][-1].content)
+
+
+print("\n")
+if result.get("__interrupt__"):
+    result=agent_with_hitl.invoke(
+        Command(resume={"decisions": [{"type": "approve"}]}),
+        config=config
+    )
+    print("✅ 已获批准，继续执行！")
+    print(result["messages"][-1].content)
 
 
 print("\n")
@@ -922,7 +927,7 @@ print(
     "-------------------------------------------09-complete research Agent------------------------------------------------------")
 print("\n")
 
-
+#
 # final_store = InMemoryStore()
 #
 #
