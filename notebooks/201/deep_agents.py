@@ -493,12 +493,7 @@ print(
     "-------------------------------------------06-Human-in-the-Loop-------------------------------------------------------")
 print("\n")
 
-# 创建一个中断点
-interrupt_on = {
-    "delete_file": {"allowed_decisions": ["approve", "edit", "reject"]},
-    "write_file": {"allowed_decisions": ["approve", "reject"]},
-    "critical_operation": {"allowed_decisions": ["approve"]}
-}
+
 
 # 创建 agent
 agent_with_hitl = create_deep_agent(
@@ -521,7 +516,7 @@ result = agent_with_hitl.invoke(
         "messages": [
             {
                 "role": "user",
-                "content": "写入一个名为 /test.md 的文件，内容为 'Hello World'"
+                "content": "尝试写入 /test.md，内容为 'Hello World'。如果人工审核修改了路径或内容，请以审核后的工具参数为准，不要再改回原始请求"
             }
         ]
     },
@@ -548,10 +543,26 @@ else:
 print("\n")
 if result.get("__interrupt__"):
     result=agent_with_hitl.invoke(
-        Command(resume={"decisions": [{"type": "approve"}]}),
-        config=config
+        Command(
+            resume={
+                "decisions": [
+                    {
+                        "type": "edit",
+                        "edited_action": {
+                            "name": "write_file",
+                            "args": {
+                                "file_path": "/edited_test.md",
+                                "content": "Hello from edited HITL decision",
+                            },
+                        },
+                    }
+                ]
+            }
+        ),
+
+    config=config
     )
-    print("✅ 已获批准，继续执行！")
+    print("已编辑工具调用，继续执行！")
     print(result["messages"][-1].content)
 
 

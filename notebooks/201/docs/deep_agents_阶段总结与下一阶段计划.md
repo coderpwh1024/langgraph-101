@@ -110,7 +110,7 @@
 
 ### 5. HITL 示例
 
-已写出：
+已写出并验证：
 
 - `interrupt_on` 配置
 - `approve` / `edit` / `reject` 决策类型
@@ -118,9 +118,10 @@
 
 当前状态：
 
-- 代码块大多仍是注释状态
-- 还没有形成稳定的可运行实验
-- 需要验证“同一个 thread_id 恢复执行”的完整链路
+- 已形成可运行实验
+- 已能打印 `write_file` 的 interrupt payload
+- 已分别验证 approve、reject、edit 三种决策
+- 已验证必须使用同一个 `thread_id` / `config` 恢复执行
 
 ### 6. 长期记忆与作用域记忆
 
@@ -168,7 +169,7 @@
 - 已完成新 thread 不传 `files` 的验证实验：
   `/memories/research_notes.md` 可跨 thread 读取，`/final_report.md`、
   `/AGENTS.md`、`/skills/linkedin-post/SKILL.md` 均不可见
-- 仍需处理 `StoreBackend` 未显式配置 `namespace` 的弃用告警
+- 已为 `StoreBackend` 补充显式 `namespace`，不再依赖默认命名空间行为
 
 ---
 
@@ -242,7 +243,7 @@ CompositeBackend(
 > 不等于给 `/skills/` 配置持久化 backend。当前 routes 只有
 > `/memories/`，因此只有 `/memories/...` 能跨 thread 存活。
 
-### P1：HITL 还没有完整跑通
+### P1：HITL 完整链路已跑通（已完成）
 
 HITL 的关键链路是：
 
@@ -252,7 +253,19 @@ HITL 的关键链路是：
 4. 捕获 interrupt payload
 5. 使用同一个 config 执行 `Command(resume=...)`
 
-当前脚本已有代码雏形，但还缺少一次完整、稳定、可复现的实验。
+验收结果：
+
+- approve：中断后批准 `write_file`，文件成功创建
+- reject：中断后拒绝 `write_file`，文件未创建，Agent 能向用户说明结果
+- edit：中断后修改 `write_file` 的 `file_path` 与 `content`，最终写入
+  `/edited_test.md`
+- 三种决策均使用同一个 `config` / `thread_id` 执行
+  `Command(resume=...)`
+
+结论：
+
+> HITL 的核心不是“让 Agent 问一句用户”，而是将工具调用挂起，
+> 由人工审核工具名与参数后，再用同一个 checkpoint 线程恢复执行。
 
 ### P1：还缺 Studio 可运行形态
 
@@ -271,6 +284,24 @@ HITL 的关键链路是：
 - 从“脚本学习”进入“可运行 Agent 工程”
 - 可以用 LangGraph Studio 观察状态、工具调用、中断和 memory
 - 更接近真实生产工作流
+
+### P1：`StoreBackend` 已补显式 `namespace`（已完成）
+
+当前基础 `/memories/` 路由已经从隐式命名空间改为显式命名空间：
+
+```python
+StoreBackend(
+    namespace=lambda runtime: (
+        "deep_agents",
+        "basic_memory",
+        "memories",
+    )
+)
+```
+
+验收结果：
+
+> `StoreBackend` 不再依赖 deepagents 0.7.0 的默认 namespace 行为。
 
 ### P2：Middleware 只完成了 logging，缺少上下文管理对照
 
@@ -342,9 +373,9 @@ CompositeBackend(
 - `/AGENTS.md` 与 SKILL.md → 通过 `files` 注入当前 thread，
   新 thread 不重新传 `files` 时不可读
 
-### 目标 2：补齐 HITL 实操
+### 目标 2：补齐 HITL 实操（已完成）
 
-要完成的实验：
+已完成的实验：
 
 1. 配置：
 
@@ -355,6 +386,11 @@ interrupt_on={
 }
 ```
 
+当前实验用 `True` 跑通，因此 interrupt payload 中会包含
+`approve` / `edit` / `reject` / `respond`。如果要与本节只验证
+approve / reject / edit 的目标严格对齐，后续可改成显式
+`allowed_decisions` 配置。
+
 2. 触发写文件操作。
 3. 打印 interrupt payload：
 
@@ -364,13 +400,20 @@ interrupt_on={
 
 4. 分别验证：
 
-- approve：继续写入
-- reject：拒绝写入，并观察 agent 如何响应
-- edit：修改工具参数后继续
+- approve：继续写入，文件创建成功
+- reject：拒绝写入，文件未创建
+- edit：修改工具参数后继续，最终写入 `/edited_test.md`
 
 学习目标：
 
 > HITL 的本质是“暂停执行 → 人审工具调用 → 用同一个 thread 恢复”。
+
+验收结论：
+
+- 已能打印 `write_file` 的 interrupt payload
+- 已能看到原始工具参数 `/test.md` 与 `Hello World`
+- 已能使用同一个 `config` / `thread_id` resume
+- 已分别跑通 approve、reject、edit 三类决策
 
 ### 目标 3：沉淀 Studio 版 Deep Agent
 
@@ -434,9 +477,9 @@ langgraph.json
 | --- | --- | --- | --- |
 | P0（已完成） | 修正 `/memories/` → `StoreBackend` 路由 | 原最大概念风险 | 新 thread 已能读 `/memories/research_notes.md` |
 | P0（已完成） | 验证新 thread 不传 `files` 时 skills 不存在 | 对应 AGENTS.md / skills 生命周期 | 已能解释 `/AGENTS.md`、SKILL.md、`/final_report.md` 谁能跨 thread 存活 |
-| P1 | 跑通 HITL approve / reject / edit / resume | Deep Agents 生产工作流核心能力 | 能打印 interrupt payload，并用同一 config resume |
+| P1（已完成） | 跑通 HITL approve / reject / edit / resume | Deep Agents 生产工作流核心能力 | 已能打印 interrupt payload，并用同一 config resume |
 | P1 | 搭建 `agents/deep_agent/` Studio 版 | 对齐官方项目形态 | `langgraph dev` 能加载 deep agent |
-| P1 | 为 `StoreBackend` 补显式 `namespace` | 消除 deepagents 0.7.0 弃用风险 | 运行时不再出现 namespace deprecation warning |
+| P1（已完成） | 为 `StoreBackend` 补显式 `namespace` | 消除 deepagents 0.7.0 弃用风险 | 已改为显式 namespace，不再依赖默认行为 |
 | P2 | 补 Middleware 上下文管理实验 | 路线中最密的硬概念岛 | 能对比 middleware 前后状态变化 |
 | P2 | 清理 `deep_agents.py` import 与结构 | 降低复习和维护成本 | import 合规，阶段边界清晰 |
 | P3 | 更新总结、路线、检测题 | 固化学习成果 | 文档能指导下一轮自测 |
@@ -445,19 +488,18 @@ langgraph.json
 
 ## 六、建议执行顺序
 
-推荐按以下顺序继续推进：
+当前推荐按以下顺序继续推进：
 
-1. 为 `StoreBackend` 补显式 `namespace`，消除弃用告警。
-2. 跑通 HITL 完整链路。
-3. 把 P0 跨 thread 实验结果补进薄弱点文档。
-4. 抽出 `agents/deep_agent/` Studio 版。
-5. 最后再整理 `deep_agents.py` 和 Middleware 对照实验。
+1. 抽出 `agents/deep_agent/` Studio 版。
+2. 用 `langgraph dev` 验证 Studio 能加载 deep agent。
+3. 把 P0 跨 thread 实验结果与 P1 HITL 验收结果补进薄弱点文档。
+4. 最后再整理 `deep_agents.py` 和 Middleware 对照实验。
 
-不要同时推进太多概念。下一阶段的核心不是“学更多”，而是把以下三件事钉死：
+不要同时推进太多概念。下一阶段的核心不是“学更多”，而是把以下剩余事项钉死：
 
-- HITL 的 interrupt / resume 流程
-- `StoreBackend` 的显式 namespace
 - Studio 可运行形态中的真实 AGENTS.md / skills 文件
+- `deep_agents.py` 中已验收实验的结构化整理
+- Middleware 上下文管理对照实验
 
 ---
 
@@ -465,6 +507,6 @@ langgraph.json
 
 当前已经完成 deep_agents 的**首轮贯通**。
 
-P0 的 `/memories/` 路由与 skills / AGENTS.md 生命周期已经通过实验验收。
-下一阶段重点转向 HITL resume、`StoreBackend` namespace，以及沉淀一个
-可在 LangGraph Studio 中运行的完整 Deep Agent。
+P0 的 `/memories/` 路由、skills / AGENTS.md 生命周期，以及 P1 的
+HITL resume 与 `StoreBackend` namespace 已经通过实验验收。下一阶段重点
+转向沉淀一个可在 LangGraph Studio 中运行的完整 Deep Agent。
