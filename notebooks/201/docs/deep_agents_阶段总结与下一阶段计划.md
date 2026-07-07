@@ -79,7 +79,9 @@
 当前状态：
 
 - 概念大体已掌握
-- 残留风险集中在“路径前缀 → backend 路由”的条件反射还不够稳
+- 已通过 final agent 跨 thread 实验证明“路径前缀 → backend 路由”
+  的判断规则：`/memories/` 命中 `StoreBackend`，普通文件与通过
+  `files` 注入的 AGENTS.md / SKILL.md 在新 thread 中不可见
 
 ### 3. 子 Agent 编排
 
@@ -162,13 +164,17 @@
 当前状态：
 
 - 已完成首轮贯通
-- 但长期记忆路由仍需修正和验证
+- 已为 final agent 单独配置 `/memories/` → `StoreBackend` 路由
+- 已完成新 thread 不传 `files` 的验证实验：
+  `/memories/research_notes.md` 可跨 thread 读取，`/final_report.md`、
+  `/AGENTS.md`、`/skills/linkedin-post/SKILL.md` 均不可见
+- 仍需处理 `StoreBackend` 未显式配置 `namespace` 的弃用告警
 
 ---
 
 ## 三、关键问题与风险
 
-### P0：final agent 的长期记忆路由不完整
+### P0：final agent 的长期记忆路由不完整（已完成）
 
 当前 `final_agent` 复用了前面用于 `/workspace/` 的
 `composite_backend`：
@@ -194,11 +200,19 @@ CompositeBackend(
 - 因此会落到 default 的 `StateBackend`
 - 结果它只是 thread 内状态，不是真正跨 thread 的长期记忆
 
-结论：
+处理结果：
 
-> final agent 必须显式增加 `/memories/` → `StoreBackend()` 路由。
+- 已在 part09 final agent 中新增独立 `final_backend`
+- 已显式增加 `/memories/` → `StoreBackend()` 路由
+- 已使用独立 `final_store = InMemoryStore()`，避免与前面教学段落共用
+  `store`
 
-### P0：skills 生命周期需要显式验证
+验收结果：
+
+> 新 thread 能读取 `/memories/research_notes.md`，说明该路径已经进入
+> `StoreBackend`，不再落到默认 `StateBackend`。
+
+### P0：skills 生命周期需要显式验证（已完成）
 
 当前 `skill_agent` 第一次运行时传入了：
 
@@ -214,9 +228,19 @@ CompositeBackend(
 - `/skills/.../SKILL.md` 也是通过 `files` 注入 state 的
 - 新 thread 不重新传 `files`，这些文件就不存在
 
-这不是 bug，而是非常适合做成教学实验：
+验证结果：
 
-> 同一个 thread 能继续读 state；新 thread 不传 files 时，skills 不会自动存在。
+- 第一次运行通过 `files` 注入 `/AGENTS.md` 与 `/skills/.../SKILL.md`
+- 第二次运行使用新的 `thread_id`，且不再传 `files`
+- 新 thread 中 `/AGENTS.md`、`/skills/linkedin-post/SKILL.md`、
+  `/final_report.md` 均读取失败
+- 同一轮验证中 `/memories/research_notes.md` 读取成功
+
+结论：
+
+> `skills=["/skills/"]` 只是告诉 deep agents 从哪里发现 skill 文件，
+> 不等于给 `/skills/` 配置持久化 backend。当前 routes 只有
+> `/memories/`，因此只有 `/memories/...` 能跨 thread 存活。
 
 ### P1：HITL 还没有完整跑通
 
@@ -278,9 +302,9 @@ HITL 的关键链路是：
 
 ## 四、下一阶段学习目标
 
-### 目标 1：修正长期记忆 mental model
+### 目标 1：修正长期记忆 mental model（已完成）
 
-要完成的实验：
+已完成的实验：
 
 1. 为 final agent 创建新的 backend：
 
@@ -310,6 +334,13 @@ CompositeBackend(
 学习目标：
 
 > 路径前缀决定文件命运，与文件“身份”无关。
+
+验收结论：
+
+- `/memories/research_notes.md` → 命中 `StoreBackend`，新 thread 可读
+- `/final_report.md` → 默认 `StateBackend`，新 thread 不可读
+- `/AGENTS.md` 与 SKILL.md → 通过 `files` 注入当前 thread，
+  新 thread 不重新传 `files` 时不可读
 
 ### 目标 2：补齐 HITL 实操
 
@@ -401,10 +432,11 @@ langgraph.json
 
 | 优先级 | 事项 | 原因 | 验收标准 |
 | --- | --- | --- | --- |
-| P0 | 修正 `/memories/` → `StoreBackend` 路由 | 当前最大概念风险 | 新 thread 能读 `/memories/research_notes.md` |
-| P0 | 验证新 thread 不传 `files` 时 skills 不存在 | 对应 AGENTS.md / skills 生命周期 | 能解释 `/AGENTS.md`、SKILL.md、`/final_report.md` 谁能跨 thread 存活 |
+| P0（已完成） | 修正 `/memories/` → `StoreBackend` 路由 | 原最大概念风险 | 新 thread 已能读 `/memories/research_notes.md` |
+| P0（已完成） | 验证新 thread 不传 `files` 时 skills 不存在 | 对应 AGENTS.md / skills 生命周期 | 已能解释 `/AGENTS.md`、SKILL.md、`/final_report.md` 谁能跨 thread 存活 |
 | P1 | 跑通 HITL approve / reject / edit / resume | Deep Agents 生产工作流核心能力 | 能打印 interrupt payload，并用同一 config resume |
 | P1 | 搭建 `agents/deep_agent/` Studio 版 | 对齐官方项目形态 | `langgraph dev` 能加载 deep agent |
+| P1 | 为 `StoreBackend` 补显式 `namespace` | 消除 deepagents 0.7.0 弃用风险 | 运行时不再出现 namespace deprecation warning |
 | P2 | 补 Middleware 上下文管理实验 | 路线中最密的硬概念岛 | 能对比 middleware 前后状态变化 |
 | P2 | 清理 `deep_agents.py` import 与结构 | 降低复习和维护成本 | import 合规，阶段边界清晰 |
 | P3 | 更新总结、路线、检测题 | 固化学习成果 | 文档能指导下一轮自测 |
@@ -413,20 +445,19 @@ langgraph.json
 
 ## 六、建议执行顺序
 
-推荐按以下顺序推进：
+推荐按以下顺序继续推进：
 
-1. 先修 final agent 的 `/memories/` 路由。
-2. 做跨 thread 验证实验。
-3. 把这个实验结果补进薄弱点文档。
-4. 跑通 HITL 完整链路。
-5. 抽出 `agents/deep_agent/` Studio 版。
-6. 最后再整理 `deep_agents.py` 和 Middleware 对照实验。
+1. 为 `StoreBackend` 补显式 `namespace`，消除弃用告警。
+2. 跑通 HITL 完整链路。
+3. 把 P0 跨 thread 实验结果补进薄弱点文档。
+4. 抽出 `agents/deep_agent/` Studio 版。
+5. 最后再整理 `deep_agents.py` 和 Middleware 对照实验。
 
 不要同时推进太多概念。下一阶段的核心不是“学更多”，而是把以下三件事钉死：
 
-- `/memories/` 的 backend 路由
-- skills / AGENTS.md 的生命周期
 - HITL 的 interrupt / resume 流程
+- `StoreBackend` 的显式 namespace
+- Studio 可运行形态中的真实 AGENTS.md / skills 文件
 
 ---
 
@@ -434,6 +465,6 @@ langgraph.json
 
 当前已经完成 deep_agents 的**首轮贯通**。
 
-下一阶段的重点不是继续横向加新概念，而是优先把
-`/memories/` 路由、skills 生命周期、HITL resume 三件事用实验验证清楚，
-然后沉淀成一个可在 LangGraph Studio 中运行的完整 Deep Agent。
+P0 的 `/memories/` 路由与 skills / AGENTS.md 生命周期已经通过实验验收。
+下一阶段重点转向 HITL resume、`StoreBackend` namespace，以及沉淀一个
+可在 LangGraph Studio 中运行的完整 Deep Agent。
