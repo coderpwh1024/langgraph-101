@@ -962,7 +962,12 @@ result = final_agent.invoke({
         "messages":[
             {
                 "role": "user",
-                "content": "研究什么是 LangChain Deep Agents，撰写一份简要报告，然后根据你的研究发现写一篇 LinkedIn 帖子"
+                "content": (
+      "研究什么是 LangChain Deep Agents，撰写一份简要报告，"
+      "然后根据你的研究发现写一篇 LinkedIn 帖子。"
+      "必须把报告保存到 `/final_report.md`，"
+      "并把关键研究要点保存到 `/memories/research_notes.md`。"
+  )
             }
         ],
         "files":final_agent_files
@@ -984,3 +989,26 @@ for path ,file_data in result.get("files",{}).items():
     print("-" * 40)
     print(content[:500] + ("..." if len(content) > 500 else ""))
 
+
+
+print("\n")
+print("-----------------------------")
+print("\n")
+new_thread_config={"configurable":{"thread_id": uuid7()}}
+result_new = final_agent.invoke({
+
+        "messages":[
+            {
+                "role": "user",
+                "content":  (
+                      "不要搜索网络，也不要创建新文件。"
+                      "请只尝试读取以下路径，并逐项说明读到或读不到："
+                      "`/memories/research_notes.md`、`/final_report.md`、"
+                      "`/AGENTS.md`、`/skills/linkedin-post/SKILL.md`。"
+                      "最后用一句话解释原因：路径前缀如何决定 backend 路由。"
+                  )
+            }
+        ]
+},config=new_thread_config)
+
+print(result_new["messages"][-1].content[:2000])
