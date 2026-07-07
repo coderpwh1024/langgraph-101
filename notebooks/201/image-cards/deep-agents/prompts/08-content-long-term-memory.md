@@ -7,6 +7,10 @@ Sketch-notes educational diagram, warm cream background, macaron pastel drawers,
 ## Text Rules
 
 Readable Chinese. Keep paths exact: /memories/semantic, /memories/episodic, /memories/procedural, /memories/user, /memories/shared.
+The two scope labels are DIFFERENT paths: /memories/user (用户私有) and /memories/shared (团队共享) — never repeat the same path twice.
+Exactly FIVE label bubbles in total, one per drawer, no duplicates. Every path label MUST start with a leading slash: /memories/...
+Render ONLY the text listed in Content below. Do NOT add extra annotation bubbles or long explanation sentences; every label is at most one short line.
+The key mechanism tag must read exactly: StoreBackend + namespace.
 
 ## Content
 
@@ -40,10 +44,10 @@ StoreBackend + namespace
 路径前缀决定边界
 
 Visual concept:
-A five-drawer memory cabinet. Top three drawers are memory types, bottom two drawers are permission scopes. Alice can open user drawer; Bob can only see shared drawer. Use simple lock and people icons.
+A five-drawer memory cabinet in the center. Each drawer has exactly ONE label bubble: top three drawers are the three memory types, bottom two drawers are the two scopes (/memories/user 用户私有, /memories/shared 团队共享 — each appears exactly ONCE). Use simple lock and people icons only.
 
 Layout:
-Dense layout, drawer diagram in center, key mechanism tags around it.
+Dense layout, drawer diagram in center, five label bubbles on the left/right of their drawers, key mechanism tag and core message at bottom. There are NO other annotation bubbles anywhere — leave decorative space empty instead of adding text.
 
 No watermark.
 
