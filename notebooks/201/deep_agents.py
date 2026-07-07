@@ -1,28 +1,27 @@
+import os
+import shutil
 import sys
 import tempfile
+import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import final
 
 from deepagents import create_deep_agent
-from deepagents.backends import FilesystemBackend, CompositeBackend, StateBackend, StoreBackend
-import tempfile
-import shutil
-import os
-
-from deepagents.backends.utils import create_file_data
+from deepagents.backends import CompositeBackend
+from deepagents.backends import FilesystemBackend
+from deepagents.backends import StateBackend
+from deepagents.backends import StoreBackend
+from dotenv import load_dotenv
 from langchain.agents.middleware import wrap_tool_call
-from langchain_community.agent_toolkits.openapi.planner_prompt import API_CONTROLLER_TOOL_NAME
-from langchain_community.tools import EdenAiTextModerationTool
-from langgraph.store.memory import InMemoryStore
 from langchain_core.tools import tool
-from langgraph.types import Command
-
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.store.memory import InMemoryStore
+from langgraph.types import Command
 from langsmith import uuid7
-from numpy.testing.print_coercion_tables import print_new_cast_table
-from openevals import create_async_trajectory_match_evaluator
 from tavily import TavilyClient
+
+load_dotenv(dotenv_path="../../.env", override=True)
+warnings.filterwarnings("ignore", message="LangSmith now uses UUID v7")
 
 # 将 notebooks 目录加入 sys.path，以便脚本方式运行时能 import utils.*
 # 注意：必须用 Path(__file__) 而非 Path()，后者取当前工作目录，
@@ -33,14 +32,6 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from utils.models import model
-
-from dotenv import load_dotenv
-
-load_dotenv(dotenv_path="../../.env", override=True)
-
-import warnings
-
-warnings.filterwarnings('ignore', message='LangSmith now uses UUID v7')
 
 print(
     "-------------------------------------------01-Harness-------------------------------------------------------")
@@ -79,14 +70,16 @@ print("深入研究Agent创建成功")
 print(
     "-------------------------------------------02-自定义工具-------------------------------------------------------")
 
-# 初始化 TavilyClient 搜索
-api_key = os.getenv("TAVILY_API_KEY")
-if not api_key:
-    raise RuntimeError(
-        "未检测到 TAVILY_API_KEY，请在 .env 中配置后再运行；"
-        "否则会进入 keyless 匿名模式并很快被限流。"
-    )
-tavily_client = TavilyClient(api_key)
+
+def _create_tavily_client() -> TavilyClient:
+    """创建 Tavily 搜索客户端。"""
+    api_key = os.getenv("TAVILY_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "未检测到 TAVILY_API_KEY，请在 .env 中配置后再运行；"
+            "否则会进入 keyless 匿名模式并很快被限流。"
+        )
+    return TavilyClient(api_key)
 
 
 # 搜索工具
@@ -96,7 +89,11 @@ def tavily_search(query: str) -> str:
 
     Args:
         query: 要执行的搜索查询（search query）。
+
+    Returns:
+        搜索结果摘要文本，包含标题、URL 与内容片段。
     """
+    tavily_client = _create_tavily_client()
     search_results = tavily_client.search(
         query, max_results=3, topic="general", search_depth="basic"
     )
@@ -492,19 +489,18 @@ print("\n")
 print(
     "-------------------------------------------06-Human-in-the-Loop-------------------------------------------------------")
 print("\n")
-
-
-
 # 创建 agent
 agent_with_hitl = create_deep_agent(
     model=model,
-    tools=[tavily_search],
-    system_prompt="你是一个乐于助人的研究助手。在引用文件路径时，请使用反引号格式，如 `path/file.md`，而不是 Markdown 链接,所有的回答必须使用中文",
-    subagents=[research_subagent],
+    system_prompt=(
+        "你是一个乐于助人的研究助手。"
+        "在引用文件路径时，请使用反引号格式，如 `path/file.md`。"
+        "所有回答必须使用中文。"
+    ),
     checkpointer=MemorySaver(),
     interrupt_on={
-        "write_file": True,
-        "edit_file": True,
+        "write_file": {"allowed_decisions": ["approve", "edit", "reject"]},
+        "edit_file": {"allowed_decisions": ["approve", "edit", "reject"]},
     }
 )
 
@@ -516,7 +512,11 @@ result = agent_with_hitl.invoke(
         "messages": [
             {
                 "role": "user",
-                "content": "尝试写入 /test.md，内容为 'Hello World'。如果人工审核修改了路径或内容，请以审核后的工具参数为准，不要再改回原始请求"
+                "content": (
+                    "尝试写入 /test.md，内容为 'Hello World'。"
+                    "如果人工审核修改了路径或内容，"
+                    "请以审核后的工具参数为准，不要再改回原始请求。"
+                )
             }
         ]
     },
@@ -530,19 +530,19 @@ if result.get("__interrupt__"):
     action_requests = interrupt_value["action_requests"]
     review_configs = interrupt_value["review_configs"]
 
-    for action,review in zip(action_requests,review_configs):
+    for action, review in zip(action_requests, review_configs):
         print(f"  工具:{action['name']}")
         print(f"  工具参数:{action['args']}")
         print(f"  允许的决策:{review['allowed_decisions']}")
 
 else:
-   print("没有触发中断！")
-   print(result["messages"][-1].content)
+    print("没有触发中断！")
+    print(result["messages"][-1].content)
 
 
 print("\n")
 if result.get("__interrupt__"):
-    result=agent_with_hitl.invoke(
+    result = agent_with_hitl.invoke(
         Command(
             resume={
                 "decisions": [
@@ -559,8 +559,7 @@ if result.get("__interrupt__"):
                 ]
             }
         ),
-
-    config=config
+        config=config
     )
     print("已编辑工具调用，继续执行！")
     print(result["messages"][-1].content)

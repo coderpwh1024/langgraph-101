@@ -267,11 +267,11 @@ HITL 的关键链路是：
 > HITL 的核心不是“让 Agent 问一句用户”，而是将工具调用挂起，
 > 由人工审核工具名与参数后，再用同一个 checkpoint 线程恢复执行。
 
-### P1：还缺 Studio 可运行形态
+### P1：Studio 可运行形态（暂时废弃）
 
 当前本地项目是 notebook/script 学习结构。
 
-如果要对齐上游 `langgraph-101`，下一步应补：
+如果要对齐上游 `langgraph-101`，原计划下一步应补：
 
 - `agents/deep_agent/agent.py`
 - `agents/deep_agent/AGENTS.md`
@@ -279,11 +279,18 @@ HITL 的关键链路是：
 - `agents/deep_agent/skills/twitter-post/SKILL.md`
 - `langgraph.json`
 
-这一步的意义：
+这一步的意义原本是：
 
 - 从“脚本学习”进入“可运行 Agent 工程”
 - 可以用 LangGraph Studio 观察状态、工具调用、中断和 memory
 - 更接近真实生产工作流
+
+当前决策：
+
+> 暂时废弃 Studio 版落地，不再作为下一阶段推进项。原因是本阶段目标
+> 已经通过 notebook/script 完成核心机制验证，继续引入 LangGraph CLI、
+> `langgraph.json`、LangSmith Studio 账号与本地 Agent Server 会扩大
+> 工程范围，偏离当前“先钉死核心机制”的学习目标。
 
 ### P1：`StoreBackend` 已补显式 `namespace`（已完成）
 
@@ -321,13 +328,16 @@ StoreBackend(
 
 当前 `deep_agents.py` 是学习草稿形态，存在：
 
-- 重复 import
-- 未使用 import
-- import 分组不规范
+- 重复 import（已清理）
+- 未使用 import（已清理）
+- import 分组不规范（已清理）
+- Tavily 搜索工具在全局初始化时强依赖 `TAVILY_API_KEY`（已改为工具调用时懒初始化）
+- HITL 实验混入搜索工具与子 Agent 依赖（已收敛为纯文件写入审核实验）
 - 大量注释代码与可运行代码混在一起
 - 多个阶段共享变量，容易误用旧 backend / store / config
 
-作为学习草稿可以接受；如果要长期维护，应拆成更清晰的教学段落或独立函数。
+作为学习草稿可以接受；如果要长期维护，下一步应继续拆成更清晰的
+教学段落或独立函数。
 
 ---
 
@@ -415,9 +425,9 @@ approve / reject / edit 的目标严格对齐，后续可改成显式
 - 已能使用同一个 `config` / `thread_id` resume
 - 已分别跑通 approve、reject、edit 三类决策
 
-### 目标 3：沉淀 Studio 版 Deep Agent
+### 目标 3：沉淀 Studio 版 Deep Agent（暂时废弃）
 
-目标结构：
+原目标结构：
 
 ```text
 agents/
@@ -432,7 +442,7 @@ agents/
 langgraph.json
 ```
 
-关键要求：
+原关键要求：
 
 - `agent.py` 中只保留 Agent 定义，不写教学打印逻辑
 - `AGENTS.md` 作为真实常驻指令文件
@@ -444,6 +454,12 @@ langgraph.json
 学习目标：
 
 > 从 notebook/script 示例迁移到可运行 Agent 工程。
+
+当前决策：
+
+> 本目标暂时废弃，不再进入下一轮执行。后续如果重新需要 Studio
+> 调试能力，再单独恢复该目标，并先补齐 `langgraph-cli[inmem]`、
+> `langgraph.json`、LangSmith 配置与可导入的 `agent` 入口。
 
 ### 目标 4：补 Middleware 对照实验
 
@@ -478,10 +494,10 @@ langgraph.json
 | P0（已完成） | 修正 `/memories/` → `StoreBackend` 路由 | 原最大概念风险 | 新 thread 已能读 `/memories/research_notes.md` |
 | P0（已完成） | 验证新 thread 不传 `files` 时 skills 不存在 | 对应 AGENTS.md / skills 生命周期 | 已能解释 `/AGENTS.md`、SKILL.md、`/final_report.md` 谁能跨 thread 存活 |
 | P1（已完成） | 跑通 HITL approve / reject / edit / resume | Deep Agents 生产工作流核心能力 | 已能打印 interrupt payload，并用同一 config resume |
-| P1 | 搭建 `agents/deep_agent/` Studio 版 | 对齐官方项目形态 | `langgraph dev` 能加载 deep agent |
+| P1（暂时废弃） | 搭建 `agents/deep_agent/` Studio 版 | 需要引入 LangGraph CLI / Studio 工程形态，当前阶段暂不推进 | 不验收 |
 | P1（已完成） | 为 `StoreBackend` 补显式 `namespace` | 消除 deepagents 0.7.0 弃用风险 | 已改为显式 namespace，不再依赖默认行为 |
 | P2 | 补 Middleware 上下文管理实验 | 路线中最密的硬概念岛 | 能对比 middleware 前后状态变化 |
-| P2 | 清理 `deep_agents.py` import 与结构 | 降低复习和维护成本 | import 合规，阶段边界清晰 |
+| P2（部分完成） | 清理 `deep_agents.py` import 与结构 | 降低复习和维护成本 | import 已清理，阶段结构仍待继续整理 |
 | P3 | 更新总结、路线、检测题 | 固化学习成果 | 文档能指导下一轮自测 |
 
 ---
@@ -490,14 +506,12 @@ langgraph.json
 
 当前推荐按以下顺序继续推进：
 
-1. 抽出 `agents/deep_agent/` Studio 版。
-2. 用 `langgraph dev` 验证 Studio 能加载 deep agent。
-3. 把 P0 跨 thread 实验结果与 P1 HITL 验收结果补进薄弱点文档。
-4. 最后再整理 `deep_agents.py` 和 Middleware 对照实验。
+1. 整理 `deep_agents.py` 中已验收实验的结构，降低复习成本。
+2. 补 Middleware 上下文管理对照实验。
+3. 最后再更新学习路线与技术总结。
 
 不要同时推进太多概念。下一阶段的核心不是“学更多”，而是把以下剩余事项钉死：
 
-- Studio 可运行形态中的真实 AGENTS.md / skills 文件
 - `deep_agents.py` 中已验收实验的结构化整理
 - Middleware 上下文管理对照实验
 
@@ -508,5 +522,6 @@ langgraph.json
 当前已经完成 deep_agents 的**首轮贯通**。
 
 P0 的 `/memories/` 路由、skills / AGENTS.md 生命周期，以及 P1 的
-HITL resume 与 `StoreBackend` namespace 已经通过实验验收。下一阶段重点
-转向沉淀一个可在 LangGraph Studio 中运行的完整 Deep Agent。
+HITL resume 与 `StoreBackend` namespace 已经通过实验验收。Studio 版
+Deep Agent 暂时废弃，下一阶段重点转向整理教学脚本、补 Middleware
+对照实验，并更新复盘资料。
