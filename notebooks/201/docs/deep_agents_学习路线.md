@@ -86,10 +86,10 @@
 
 | 顺序 | 事项 | 目标产物 | 状态 |
 | --- | --- | --- | --- |
-| 1 | 整理 `deep_agents.py` 中已验收实验的运行边界 | 默认只跑必要演示，慢调用用注释作为手动开关 | 待完成 |
+| 1 | 整理 `deep_agents.py` 中已验收实验的运行边界 | 保留现有注释开关，避免无效请求与 token 消耗 | 暂不处理 |
 | 2 | 生成 `deep_agents_技术总结.md` | 一份可复习、可迁移的中文技术总结 | 已完成（已归档并校对） |
 | 3 | 补做路由判断实操练习（费曼检测遗留） | 新 thread 验证路径前缀 → backend 路由 | 已完成 |
-| 4 | 回看 `deep_agents_backend_速查.md` | 确认 Store / State / Composite / namespace 心智模型一致 | 待完成 |
+| 4 | 回看 `deep_agents_backend_速查.md` | 确认 Store / State / Composite / namespace 心智模型一致 | 暂不处理 |
 | 5 | 如有需要，再恢复 Studio 版目标 | 先补齐 LangGraph CLI、`langgraph.json`、可导入 `agent` 入口 | 暂时废弃 |
 
 ---
@@ -105,8 +105,8 @@
 ## 六、结论
 
 > A→E 首轮已经完成。路由判断实操练习已补做，技术总结已归档并通过
-> 校对，图文卡片已提交。当前不再需要继续横向扩概念，剩余重点只有一件事：整理
-> `deep_agents.py` 教学脚本结构，并在技术总结生成后做一次校对归档。
+> 校对，图文卡片已提交。当前不再需要继续横向扩概念；`deep_agents.py`
+> 保留注释开关，`deep_agents_backend_速查.md` 暂不处理。
 > 路径路由、namespace、HITL resume、Middleware context editing 四个
 > 关键心智模型均已通过实验与实操验证。
 

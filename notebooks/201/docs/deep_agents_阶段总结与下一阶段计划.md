@@ -512,7 +512,7 @@ langgraph.json
 | P1（暂时废弃） | 搭建 `agents/deep_agent/` Studio 版 | 需要引入 LangGraph CLI / Studio 工程形态，当前阶段暂不推进 | 不验收 |
 | P1（已完成） | 为 `StoreBackend` 补显式 `namespace` | 消除 deepagents 0.7.0 弃用风险 | 已改为显式 namespace，不再依赖默认行为 |
 | P2（已完成） | 补 Middleware 上下文管理实验 | 路线中最密的硬概念岛 | 已能对比旧 `ToolMessage` 清理前后状态变化 |
-| P2（部分完成） | 清理 `deep_agents.py` import 与结构 | 降低复习和维护成本 | import 已清理，阶段结构仍待继续整理 |
+| P2（暂不处理） | 清理 `deep_agents.py` import 与结构 | 降低复习和维护成本 | 当前注释块作为手动运行开关保留，避免重复模型调用与 token 消耗 |
 | P3（已完成） | 更新总结、路线、检测题 | 固化学习成果 | 学习路线已更新，技术总结已归档并校对，图文卡片已提交，路由判断实操练习已完成，检测题暂不改动 |
 
 ---
@@ -521,14 +521,15 @@ langgraph.json
 
 当前推荐按以下顺序继续推进：
 
-1. 整理 `deep_agents.py` 中已验收实验的结构，降低复习成本。
-2. ~~生成 `deep_agents_技术总结.md`~~（已完成，归档并校对）。
+1. ~~生成 `deep_agents_技术总结.md`~~（已完成，归档并校对）。
+2. ~~生成图文卡片 `image-cards/deep-agents/`~~（已完成，10 张主图已落盘）。
 3. ~~补做路由判断实操练习~~（已完成，费曼检测遗留清零）。
+4. `deep_agents.py` 暂不整理，保留注释块作为手动运行开关，避免无效请求与 token 消耗。
 
-不要同时推进太多概念。下一阶段的核心不是“学更多”，而是把以下剩余事项钉死：
+不要同时推进太多概念。当前阶段不再继续横向扩展，后续只保留低优先级归档事项：
 
-- `deep_agents.py` 中已验收实验的结构化整理（唯一剩余项，
-  建议与恢复 `agents/deep_agent/` Studio 工程化目标合并完成）
+- 如需发布或复习，再对 `deep_agents_技术总结.md` 与图文卡片做人工复核
+- 如需长期维护，再整理 `deep_agents.py` 的运行边界
 
 ---
 
@@ -539,6 +540,5 @@ langgraph.json
 P0 的 `/memories/` 路由、skills / AGENTS.md 生命周期，P1 的 HITL
 resume 与 `StoreBackend` namespace，以及 P2 的 Middleware 对照实验
 已经通过实验验收。路由判断实操练习、技术总结（已校对归档）与图文
-卡片（10 张已提交）均已完成，本阶段正式收官。剩余唯一事项是
-`deep_agents.py` 教学脚本的结构化整理，建议与下一阶段恢复
-`agents/deep_agent/` Studio 工程化目标时合并完成。
+卡片（10 张主图已落盘）均已完成，本阶段正式收官。Studio 版 Deep
+Agent 暂时废弃，`deep_agents.py` 保留注释开关，暂不整理。
