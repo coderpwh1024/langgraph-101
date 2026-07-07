@@ -46,6 +46,8 @@
 | HITL approve / reject / edit / resume | 已完成 | 已打印 interrupt payload，并用同一 config resume |
 | Middleware logging | 已完成 | 已打印 `tavily_search` / `write_file` 工具名与参数 |
 | Middleware context editing | 已完成 | 旧 `ToolMessage` 被清为 `[cleared]`，最新工具结果保留 |
+| 路由判断实操练习（费曼检测遗留） | 已完成 | 新 thread 不传 `files` 验证路径前缀路由，费曼检测遗留清零 |
+| `deep_agents_技术总结.md` | 已完成 | 另一窗口异步生成中，底稿见 `image-cards/deep-agents/source-deep-agents.md` |
 | Studio 版 `agents/deep_agent/` | 暂时废弃 | 暂不引入 LangGraph CLI / Studio 工程形态 |
 
 ### 难度/新颖度排序
@@ -82,12 +84,13 @@
 
 下一轮不再横向堆新概念，重点是把已经跑通的机制讲清楚、拆干净、迁移出去。
 
-| 顺序 | 事项 | 目标产物 |
-| --- | --- | --- |
-| 1 | 整理 `deep_agents.py` 中已验收实验的运行边界 | 默认只跑必要演示，慢调用用注释作为手动开关 |
-| 2 | 生成 `deep_agents_技术总结.md` | 一份可复习、可迁移的中文技术总结 |
-| 3 | 回看 `deep_agents_backend_速查.md` | 确认 Store / State / Composite / namespace 心智模型一致 |
-| 4 | 如有需要，再恢复 Studio 版目标 | 先补齐 LangGraph CLI、`langgraph.json`、可导入 `agent` 入口 |
+| 顺序 | 事项 | 目标产物 | 状态 |
+| --- | --- | --- | --- |
+| 1 | 整理 `deep_agents.py` 中已验收实验的运行边界 | 默认只跑必要演示，慢调用用注释作为手动开关 | 待完成 |
+| 2 | 生成 `deep_agents_技术总结.md` | 一份可复习、可迁移的中文技术总结 | 已完成（另一窗口异步生成中） |
+| 3 | 补做路由判断实操练习（费曼检测遗留） | 新 thread 验证路径前缀 → backend 路由 | 已完成 |
+| 4 | 回看 `deep_agents_backend_速查.md` | 确认 Store / State / Composite / namespace 心智模型一致 | 待完成 |
+| 5 | 如有需要，再恢复 Studio 版目标 | 先补齐 LangGraph CLI、`langgraph.json`、可导入 `agent` 入口 | 暂时废弃 |
 
 ---
 
@@ -101,9 +104,11 @@
 
 ## 六、结论
 
-> A→E 首轮已经完成。当前不再需要继续横向扩概念，重点转向复盘和沉淀：
-> 保留脚本中的教学开关，补齐技术总结，并反复确认路径路由、namespace、
-> HITL resume、Middleware context editing 这四个关键心智模型。
+> A→E 首轮已经完成。路由判断实操练习已补做，技术总结已在另一窗口
+> 异步生成。当前不再需要继续横向扩概念，剩余重点只有一件事：整理
+> `deep_agents.py` 教学脚本结构，并在技术总结生成后做一次校对归档。
+> 路径路由、namespace、HITL resume、Middleware context editing 四个
+> 关键心智模型均已通过实验与实操验证。
 
 ### 前置条件提醒
 - 当前项目统一从 `utils.models` 导入模型，密钥通过 `.env` 注入。
