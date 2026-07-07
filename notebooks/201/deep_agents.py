@@ -793,16 +793,16 @@ agents_md_content = """# 研究助理
   """
 print("Agent.md 已经创建完成")
 print("\n")
-
+#
 # 领英 skill md
 linkedin_skill_content = """
  ---                                                                                                                                                                                                     
   name: linkedin-post                                                                                                                                                                                     
   description: 基于调研结果或给定主题撰写 LinkedIn 帖子。当被要求创作 LinkedIn 内容、专业帖子或思想领导力文章时使用此技能。                                                                               
   ---                                                                                                                                                                                                     
-                                                                                                                                                                                                          
+
   # LinkedIn 帖子技能                                                                                                                                                                                     
-                                                                                                                                                                                                          
+
   ## 格式                                                                                                                                                                                                 
   - **钩子（Hook）**：以一句醒目的开场白抓住注意力（显示在「查看更多」折叠之前）                                                                                                                          
   - **正文**：3-5 个短段落，每段 1-2 句话                                                                                                                                                                 
@@ -810,12 +810,12 @@ linkedin_skill_content = """
   - 每段包含 1-2 个相关的表情符号（不要过度使用）                                                                                                                                                         
   - 以行动号召（call-to-action）或提问结尾，以带动互动                                                                                                                                                    
   - 在底部添加 3-5 个相关的话题标签（hashtag）                                                                                                                                                            
-                                                                                                                                                                                                          
+
   ## 语气                                                                                                                                                                                                 
   - 专业但不失口语化                                                                                                                                                                                      
   - 分享洞见，而非仅仅罗列信息                                                                                                                                                                            
   - 在适当的地方使用「我」的表述和个人视角                                                                                                                                                                
-                                                                                                                                                                                                          
+
   ## 篇幅                                                                                                                                                                                                 
   - 理想长度：150-300 字                                                                                                                                                                                  
   - LinkedIn 会在约 210 个字符后截断，因此第一行必须钩住读者
@@ -832,21 +832,21 @@ twitter_skill_content = """
   name: twitter-post                                                                                                                                                                                      
   description: 基于研究发现或给定主题撰写 Twitter/X 帖子或推文串（thread）。当被要求创作推文、X 帖子或社交媒体推文串时使用此技能。                                                                        
   ---                                                                                                                                                                                                     
-                                                                                                                                                                                                          
+
   # Twitter/X 帖子技能                                                                                                                                                                                    
-                                                                                                                                                                                                          
+
   ## 单条推文格式                                                                                                                                                                                         
   - 最多 280 个字符                                                                                                                                                                                       
   - 用最有吸引力的观点开头                                                                                                                                                                                
   - 尽可能使用数字或数据                                                                                                                                                                                  
   - 最多 1-2 个话题标签（hashtag）（可选）                                                                                                                                                                
-                                                                                                                                                                                                          
+
   ## 推文串格式（适用于较长内容）                                                                                                                                                                         
   - 第 1 条推文：钩子 + 预告（例如："关于 X 的推文串："）                                                                                                                                                 
   - 第 2 到 N 条推文：每条一个观点，编号（1/、2/、3/）                                                                                                                                                    
   - 最后一条推文：总结 + 行动号召（call-to-action）                                                                                                                                                       
   - 4-8 条推文是最佳数量                                                                                                                                                                                  
-                                                                                                                                                                                                          
+
   ## 语气                                                                                                                                                                                                 
   - 简洁有力                                                                                                                                                                                              
   - 有鲜明观点的表达比中立的总结表现更好                                                                                                                                                                  
@@ -856,71 +856,82 @@ print("\n")
 print("Twitter/X 帖子技能已定义！\n")
 print(f"技能名称：twitter-post\n")
 print("\n")
-
-store = InMemoryStore()
-# agent 创建
-skill_agent = create_deep_agent(
-    model=model,
-    system_prompt="""你是一名专业的研究助理,所有的回答必须是中文""",
-    tools=[tavily_search],
-    memory=["/AGENTS.md"],
-    skills=["/skills/"],
-    checkpointer=checkpointer,
-    backend=composite_backend,
-    store=store,
-)
-
-# skill 与agent 绑定
-skill_files = {
-    "/AGENTS.md": create_file_data(agents_md_content),
-    "/skills/linkedin-post/SKILL.md": create_file_data(linkedin_skill_content),
-    "/skills/twitter-post/SKILL.md": create_file_data(twitter_skill_content),
-}
-print("\n")
-print("已创建 Agent，包含 AGENTS.md + 2 个 skill！\n")
-print(f"  记忆：`/AGENTS.md`（始终加载）\n")
-print(f"  Skills：linkedin-post、twitter-post（按需加载）\n")
-print("\n")
-config = {"configurable": {"thread_id": uuid7()}}
-
-result = skill_agent.invoke({
-    "messages":
-        [
-            {
-                "role": "user",
-                "content": "研究一下什么是 AI 智能体（AI agents），然后就你的发现写一篇 LinkedIn 帖子"
-            }
-        ]
-    ,
-    "files": skill_files,
-
-}, config=config)
-
-print("\n")
-print(result["messages"][-1].content)
-print("\n")
-
-config = {"configurable": {"thread_id": uuid7()}}
-
-result = skill_agent.invoke(
-    {
-        "messages": [
-            {
-                "role": "user",
-                "content": "现在就同一主题写一个 Twitter/X 推文串（thread）"
-            }
-        ]
-    },
-    config=config
-)
-print("\n")
-print(result["messages"][-1].content)
-print("\n")
+#
+# store = InMemoryStore()
+# # agent 创建
+# skill_agent = create_deep_agent(
+#     model=model,
+#     system_prompt="""你是一名专业的研究助理,所有的回答必须是中文""",
+#     tools=[tavily_search],
+#     memory=["/AGENTS.md"],
+#     skills=["/skills/"],
+#     checkpointer=checkpointer,
+#     backend=composite_backend,
+#     store=store,
+# )
+#
+# # skill 与agent 绑定
+# skill_files = {
+#     "/AGENTS.md": create_file_data(agents_md_content),
+#     "/skills/linkedin-post/SKILL.md": create_file_data(linkedin_skill_content),
+#     "/skills/twitter-post/SKILL.md": create_file_data(twitter_skill_content),
+# }
+# print("\n")
+# print("已创建 Agent，包含 AGENTS.md + 2 个 skill！\n")
+# print(f"  记忆：`/AGENTS.md`（始终加载）\n")
+# print(f"  Skills：linkedin-post、twitter-post（按需加载）\n")
+# print("\n")
+# config = {"configurable": {"thread_id": uuid7()}}
+#
+# result = skill_agent.invoke({
+#     "messages":
+#         [
+#             {
+#                 "role": "user",
+#                 "content": "研究一下什么是 AI 智能体（AI agents），然后就你的发现写一篇 LinkedIn 帖子"
+#             }
+#         ]
+#     ,
+#     "files": skill_files,
+#
+# }, config=config)
+#
+# print("\n")
+# print(result["messages"][-1].content)
+# print("\n")
+#
+# config = {"configurable": {"thread_id": uuid7()}}
+#
+# result = skill_agent.invoke(
+#     {
+#         "messages": [
+#             {
+#                 "role": "user",
+#                 "content": "现在就同一主题写一个 Twitter/X 推文串（thread）"
+#             }
+#         ]
+#     },
+#     config=config
+# )
+# print("\n")
+# print(result["messages"][-1].content)
+# print("\n")
 
 print("\n")
 print(
     "-------------------------------------------09-complete research Agent------------------------------------------------------")
 print("\n")
+
+
+final_store = InMemoryStore()
+
+final_backend = CompositeBackend(
+    default=StateBackend(),
+    routes={
+        "/memories/": StoreBackend(),
+    }
+)
+
 
 final_agent = create_deep_agent(
     model=model,
@@ -929,8 +940,8 @@ final_agent = create_deep_agent(
     memory=["/AGENTS.md"],
     skills=["/skills/"],
     checkpointer=checkpointer,
-    backend=composite_backend,
-    store=store,
+    backend=final_backend,
+    store=final_store,
 )
 
 final_agent_files = {
@@ -966,7 +977,7 @@ print("=" * 60)
 
 for path ,file_data in result.get("files",{}).items():
     if isinstance(file_data,dict) and "content" in file_data:
-        content="\n".join(file_data["content"])
+        content = "\n".join(file_data["content"])
     else:
         content=str(file_data)
     print(f"\n📄 '{path}' ({len(content)} chars)")
