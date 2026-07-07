@@ -923,92 +923,99 @@ print(
 print("\n")
 
 
-final_store = InMemoryStore()
-
-final_backend = CompositeBackend(
-    default=StateBackend(),
-    routes={
-        "/memories/": StoreBackend(),
-    }
-)
-
-
-final_agent = create_deep_agent(
-    model=model,
-    tools=[tavily_search],
-    system_prompt="""你是一名专业的研究助理,所有的回答必须是中文""",
-    memory=["/AGENTS.md"],
-    skills=["/skills/"],
-    checkpointer=checkpointer,
-    backend=final_backend,
-    store=final_store,
-)
-
-final_agent_files = {
-    "/AGENTS.md": create_file_data(agents_md_content),
-    "/skills/linkedin-post/SKILL.md": create_file_data(linkedin_skill_content),
-    "/skills/twitter-post/SKILL.md": create_file_data(twitter_skill_content),
-}
-print("\n")
-print("最终研究 Agent 已创建，包含 AGENTS.md + skills！")
-print("\n")
-
-config = {"configurable": {"thread_id": uuid7()}}
-
-print("开始执行研究工作流...\n")
-
-result = final_agent.invoke({
-
-        "messages":[
-            {
-                "role": "user",
-                "content": (
-      "研究什么是 LangChain Deep Agents，撰写一份简要报告，"
-      "然后根据你的研究发现写一篇 LinkedIn 帖子。"
-      "必须把报告保存到 `/final_report.md`，"
-      "并把关键研究要点保存到 `/memories/research_notes.md`。"
-  )
-            }
-        ],
-        "files":final_agent_files
-
-},config=config)
-
-print(result["messages"][-1].content[:2000])
-print("\n")
-print("\n"+"="*60)
-print("📁 VIRTUAL FILESYSTEM")
-print("=" * 60)
-
-for path ,file_data in result.get("files",{}).items():
-    if isinstance(file_data,dict) and "content" in file_data:
-        content = "\n".join(file_data["content"])
-    else:
-        content=str(file_data)
-    print(f"\n📄 '{path}' ({len(content)} chars)")
-    print("-" * 40)
-    print(content[:500] + ("..." if len(content) > 500 else ""))
-
-
-
-print("\n")
-print("-----------------------------")
-print("\n")
-new_thread_config={"configurable":{"thread_id": uuid7()}}
-result_new = final_agent.invoke({
-
-        "messages":[
-            {
-                "role": "user",
-                "content":  (
-                      "不要搜索网络，也不要创建新文件。"
-                      "请只尝试读取以下路径，并逐项说明读到或读不到："
-                      "`/memories/research_notes.md`、`/final_report.md`、"
-                      "`/AGENTS.md`、`/skills/linkedin-post/SKILL.md`。"
-                      "最后用一句话解释原因：路径前缀如何决定 backend 路由。"
-                  )
-            }
-        ]
-},config=new_thread_config)
-
-print(result_new["messages"][-1].content[:2000])
+# final_store = InMemoryStore()
+#
+#
+# final_backend=CompositeBackend(
+#     default=StateBackend(),
+#     routes={
+#         "/memories/": StoreBackend(
+#             namespace=lambda runtime: (
+#                 "deep_agents",
+#                 "final_agent",
+#                 "memories"
+#             )
+#         )
+#     }
+# )
+#
+#
+# final_agent = create_deep_agent(
+#     model=model,
+#     tools=[tavily_search],
+#     system_prompt="""你是一名专业的研究助理,所有的回答必须是中文""",
+#     memory=["/AGENTS.md"],
+#     skills=["/skills/"],
+#     checkpointer=checkpointer,
+#     backend=final_backend,
+#     store=final_store,
+# )
+#
+# final_agent_files = {
+#     "/AGENTS.md": create_file_data(agents_md_content),
+#     "/skills/linkedin-post/SKILL.md": create_file_data(linkedin_skill_content),
+#     "/skills/twitter-post/SKILL.md": create_file_data(twitter_skill_content),
+# }
+# print("\n")
+# print("最终研究 Agent 已创建，包含 AGENTS.md + skills！")
+# print("\n")
+#
+# config = {"configurable": {"thread_id": uuid7()}}
+#
+# print("开始执行研究工作流...\n")
+#
+# result = final_agent.invoke({
+#
+#         "messages":[
+#             {
+#                 "role": "user",
+#                 "content": (
+#       "研究什么是 LangChain Deep Agents，撰写一份简要报告，"
+#       "然后根据你的研究发现写一篇 LinkedIn 帖子。"
+#       "必须把报告保存到 `/final_report.md`，"
+#       "并把关键研究要点保存到 `/memories/research_notes.md`。"
+#   )
+#             }
+#         ],
+#         "files":final_agent_files
+#
+# },config=config)
+#
+# print(result["messages"][-1].content[:2000])
+# print("\n")
+# print("\n"+"="*60)
+# print("📁 VIRTUAL FILESYSTEM")
+# print("=" * 60)
+#
+# for path ,file_data in result.get("files",{}).items():
+#     if isinstance(file_data,dict) and "content" in file_data:
+#         content = "\n".join(file_data["content"])
+#     else:
+#         content=str(file_data)
+#     print(f"\n📄 '{path}' ({len(content)} chars)")
+#     print("-" * 40)
+#     print(content[:500] + ("..." if len(content) > 500 else ""))
+#
+#
+#
+# print("\n")
+# print("-----------------------------")
+# print("\n")
+# new_thread_config={"configurable":{"thread_id": uuid7()}}
+# result_new = final_agent.invoke({
+#
+#         "messages":[
+#             {
+#                 "role": "user",
+#                 "content":  (
+#                       "不要搜索网络，也不要创建新文件。"
+#                       "请只尝试读取以下路径，并逐项说明读到或读不到："
+#                       "`/memories/research_notes.md`、`/final_report.md`、"
+#                       "`/AGENTS.md`、`/skills/linkedin-post/SKILL.md`。"
+#                       "最后用一句话解释原因：路径前缀如何决定 backend 路由。"
+#                   )
+#             }
+#         ]
+# },config=new_thread_config)
+#
+# print(result_new["messages"][-1].content[:2000])
