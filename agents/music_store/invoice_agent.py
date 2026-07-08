@@ -1,11 +1,13 @@
 from typing import Annotated, NotRequired, TypedDict
 
+from langchain.agents import create_agent
 from langchain_community.utilities import SQLDatabase
 from langchain_core.messages import AnyMessage
 from langchain_core.tools import tool
 from langgraph.graph import add_messages
 from langgraph.prebuilt import ToolRuntime
 
+from agents.utils.models import model
 from agents.utils.utils import get_engine_for_chinook_db
 
 engine = get_engine_for_chinook_db()
@@ -104,3 +106,30 @@ invoice_tools = [
     get_invoices_sorted_by_unit_price,
     get_employee_by_invoice_and_customer,
 ]
+
+invoice_subagent_prompt = """
+    你是助手团队中的一个子智能体，专门负责检索和处理发票信息。
+    当问题中包含与发票相关的部分时，你会被路由调用，因此只需回应发票相关内容。
+
+    你可以使用三个工具。这些工具可以帮助你从数据库中检索和处理发票信息：
+    - get_invoices_by_customer_sorted_by_date：检索某位客户的所有发票，并按发票日期排序。
+    - get_invoices_sorted_by_unit_price：检索某位客户的所有发票，并按单价排序。
+    - get_employee_by_invoice_and_customer：检索与某张发票和某位客户关联的员工信息。
+
+    如果你无法检索到发票信息，请告知客户你无法获取该信息，并询问他们是否想搜索其他内容。
+
+    核心职责：
+    - 从数据库中检索和处理发票信息
+    - 当客户询问时，提供发票的详细信息，包括客户详情、发票日期、总金额、与发票关联的员工等。
+    - 始终保持专业、友好和耐心的态度
+
+    你可能会获得额外上下文，应使用这些上下文来帮助回答客户的问题。额外上下文如下：
+    """
+
+graph = create_agent(
+    model,
+    tools=invoice_tools,
+    name="invoice_information_subagent",
+    system_prompt=invoice_subagent_prompt,
+    state_schema=State,
+)
