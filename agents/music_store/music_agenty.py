@@ -5,15 +5,16 @@ from langchain_community.utilities import SQLDatabase
 from langchain_core.messages import AnyMessage, SystemMessage
 from langchain_core.tools import tool
 from langgraph.constants import END, START
-from langgraph.graph import add_messages, StateGraph
+from langgraph.graph import StateGraph, add_messages
 from langgraph.managed import RemainingSteps
 from langgraph.prebuilt import ToolNode
-from utils.models import model
-from utils.utils import get_engine_for_chinook_db
+
+from agents.utils.models import model
+from agents.utils.utils import get_engine_for_chinook_db
 
 # 数据库
 engine = get_engine_for_chinook_db()
-db = SQLDatabase()
+db = SQLDatabase(engine)
 
 
 class InputState(TypedDict):

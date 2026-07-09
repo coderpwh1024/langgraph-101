@@ -1,29 +1,41 @@
 import ast
+from typing import Annotated
+from typing import Literal
+from typing import NotRequired
+from typing import TypedDict
 
 from langchain_community.utilities import SQLDatabase
-from langchain_core.messages import AnyMessage, AIMessage, SystemMessage, HumanMessage
-from langgraph.constants import START, END
-from langgraph.graph import add_messages, StateGraph
+from langchain_core.messages import AIMessage
+from langchain_core.messages import AnyMessage
+from langchain_core.messages import HumanMessage
+from langchain_core.messages import SystemMessage
+from langgraph.constants import END
+from langgraph.constants import START
+from langgraph.graph import StateGraph
+from langgraph.graph import add_messages
 from langgraph.managed import RemainingSteps
 from langgraph.types import interrupt
-from typedict import TypeDict
-from typing import Annotated, Optional, NotRequired
+from pydantic import BaseModel
+from pydantic import Field
 
 from agents.music_store.music_store_supervisor import supervisor
 from agents.utils.models import model
 from agents.utils.utils import get_engine_for_chinook_db
-from pydantic import BaseModel, Field
 
 # 数据库
 engine = get_engine_for_chinook_db()
 db = SQLDatabase(engine)
 
 
-class InputState(TypeDict):
+class InputState(TypedDict):
+    """带验证中断的音乐商店客服图输入状态。"""
+
     messages: Annotated[list[AnyMessage], add_messages]
 
 
 class State(InputState):
+    """带验证中断的音乐商店客服图运行时状态。"""
+
     customer_id: NotRequired[str]
     loaded_memory: NotRequired[str]
     remaining_steps: NotRequired[RemainingSteps]
@@ -31,6 +43,7 @@ class State(InputState):
 
 class UserInput(BaseModel):
     """用于解析用户提供的账户信息的 schema"""
+
     identifier: str = Field(description="")
 
 
@@ -43,7 +56,7 @@ structured_llm = model.with_structured_output(schema=UserInput)
 
 
 # 获取客户 ID
-def get_customer_id_from_identifier(identifier: str) -> Optional[int]:
+def get_customer_id_from_identifier(identifier: str) -> int | None:
     """
     使用标识符检索客户 ID，该标识符可以是客户 ID、邮箱或手机号。
 
@@ -71,7 +84,7 @@ def get_customer_id_from_identifier(identifier: str) -> Optional[int]:
 
 
 # 校验信息
-def verify_info(state: State):
+def verify_info(state: State) -> dict:
     """通过解析客户输入并与数据库匹配来验证客户账户。"""
 
     if state.get("customer_id") is None:
@@ -119,7 +132,7 @@ def human_input(state: State):
     return {"messages": [HumanMessage(content=user_input)]}
 
 
-def should_interrupt(state: State):
+def should_interrupt(state: State) -> Literal["continue", "interrupt"]:
     if state.get("customer_id") is not None:
         return "continue"
     else:

@@ -2,6 +2,7 @@ import ast
 from typing import Annotated
 from typing import Literal
 from typing import NotRequired
+from typing import TypedDict
 
 from langchain_community.utilities import SQLDatabase
 from langchain_core.messages import AIMessage
@@ -17,7 +18,6 @@ from langgraph.managed import RemainingSteps
 from langgraph.types import interrupt
 from pydantic import BaseModel
 from pydantic import Field
-from typedict import TypeDict
 
 from agents.music_store.music_store_supervisor import supervisor
 from agents.utils.models import model
@@ -27,7 +27,7 @@ engine = get_engine_for_chinook_db()
 db = SQLDatabase(engine)
 
 
-class InputState(TypeDict):
+class InputState(TypedDict):
     """音乐商店客服图的输入状态。"""
 
     messages: Annotated[list[AnyMessage], add_messages]

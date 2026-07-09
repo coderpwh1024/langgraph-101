@@ -1,21 +1,27 @@
+from typing import Annotated
+from typing import TypedDict
+
 from langchain.agents import create_agent
-from langchain_core.messages import AnyMessage, HumanMessage
+from langchain_core.messages import AnyMessage
+from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 from langgraph.graph import add_messages
 from langgraph.prebuilt import ToolRuntime
-from sqlalchemy.sql.annotation import Annotated
-from typedict import TypeDict
 
-from agents.music_store import invoice_agent
+from agents.music_store.invoice_agent import graph as invoice_agent
 from agents.music_store.music_agenty import graph as music_agent
 from agents.utils.models import model
 
 
-class InputState(TypeDict):
+class InputState(TypedDict):
+    """音乐商店主管智能体的输入状态。"""
+
     messages: Annotated[list[AnyMessage], add_messages]
 
 
 class State(InputState):
+    """音乐商店主管智能体运行时状态。"""
+
     customer_id: int
     loaded_memory: str
     remaining_steps: int
@@ -40,8 +46,16 @@ supervisor_prompt = """你是一名数字音乐商店的专业客服助手。你
 @tool(name_or_callable="invoice_information_subagent", description="""
           一个可以协助处理所有发票相关查询的智能体。它可以检索客户过往购买记录或发票的信息。
           """)
-def call_invoice_information_subagent(runtime: ToolRuntime, query: str):
-    print('made it here')
+def call_invoice_information_subagent(runtime: ToolRuntime, query: str) -> str:
+    """调用发票信息子智能体回答发票相关问题。
+
+    Args:
+        runtime: LangGraph 工具运行时，包含当前图状态。
+        query: 需要转交给发票子智能体的用户问题。
+
+    Returns:
+        发票子智能体生成的文本回复。
+    """
     print(f"invoice subagent input:{query}")
     result = invoice_agent.invoke({
         "messages": [HumanMessage(content=query)],
@@ -57,7 +71,16 @@ def call_invoice_information_subagent(runtime: ToolRuntime, query: str):
           也可以从数据库中检索数字音乐商店的音乐目录信息，
           包括专辑、曲目、歌曲等。
           """)
-def call_music_catalog_subagent(runtime: ToolRuntime, query: str):
+def call_music_catalog_subagent(runtime: ToolRuntime, query: str) -> str:
+    """调用音乐目录子智能体回答音乐相关问题。
+
+    Args:
+        runtime: LangGraph 工具运行时，包含当前图状态。
+        query: 需要转交给音乐目录子智能体的用户问题。
+
+    Returns:
+        音乐目录子智能体生成的文本回复。
+    """
     result = music_agent.invoke({
         "messages": [HumanMessage(content=query)],
         "load_memory": runtime.state.get("loaded_memory", {})

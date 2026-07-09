@@ -11,3 +11,6 @@
 __pycache__/
 *.pyc
 .gstack/
+
+# LangGraph 本地运行状态
+.langgraph_api/
