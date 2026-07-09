@@ -2,12 +2,14 @@ import ast
 
 from langchain_community.utilities import SQLDatabase
 from langchain_core.messages import AnyMessage, AIMessage, SystemMessage, HumanMessage
-from langgraph.graph import add_messages
+from langgraph.constants import START, END
+from langgraph.graph import add_messages, StateGraph
 from langgraph.managed import RemainingSteps
 from langgraph.types import interrupt
 from typedict import TypeDict
 from typing import Annotated, Optional, NotRequired
 
+from agents.music_store.music_store_supervisor import supervisor
 from agents.utils.models import model
 from agents.utils.utils import get_engine_for_chinook_db
 from pydantic import BaseModel, Field
@@ -122,3 +124,28 @@ def should_interrupt(state: State):
         return "continue"
     else:
         return "interrupt"
+
+
+multi_agent_verify = StateGraph(State, input_schema=InputState)
+
+# node
+multi_agent_verify.add_node("verify_info", verify_info)
+multi_agent_verify.add_node("human_input", human_input)
+multi_agent_verify.add_node("supervisor", supervisor)
+
+# edge
+multi_agent_verify.add_edge(START, "verify_info")
+multi_agent_verify.add_conditional_edges(
+    "verify_info",
+    should_interrupt,
+    {
+        "continue": "supervisor",
+        "interrupt": "human_input",
+    },
+)
+
+multi_agent_verify.add_edge("human_input", "verify_info")
+multi_agent_verify.add_edge("supervisor", END)
+
+# 编译
+graph = multi_agent_verify.compile(name="multi_agent_verify")
