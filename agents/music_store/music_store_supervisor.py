@@ -1,3 +1,4 @@
+from langchain.agents import create_agent
 from langchain_core.messages import AnyMessage, HumanMessage
 from langchain_core.tools import tool
 from langgraph.graph import add_messages
@@ -6,6 +7,8 @@ from sqlalchemy.sql.annotation import Annotated
 from typedict import TypeDict
 
 from agents.music_store import invoice_agent
+from agents.music_store.music_agenty import graph as music_agent
+from agents.utils.models import model
 
 
 class InputState(TypeDict):
@@ -41,8 +44,33 @@ def call_invoice_information_subagent(runtime: ToolRuntime, query: str):
     print('made it here')
     print(f"invoice subagent input:{query}")
     result = invoice_agent.invoke({
-        "messages":[HumanMessage(content=query)],
-        "customer_id":runtime.state.get("customer_id",{})
+        "messages": [HumanMessage(content=query)],
+        "customer_id": runtime.state.get("customer_id", {})
     })
-    subagent_response=result["messages"][-1].content
+    subagent_response = result["messages"][-1].content
     return subagent_response
+
+
+# 音乐目录子 agent
+@tool(name_or_callable="music_catalog_subagent", description="""
+          一个可以协助处理所有音乐相关查询的智能体。该智能体可以访问用户已保存的音乐偏好，
+          也可以从数据库中检索数字音乐商店的音乐目录信息，
+          包括专辑、曲目、歌曲等。
+          """)
+def call_music_catalog_subagent(runtime: ToolRuntime, query: str):
+    result = music_agent.invoke({
+        "messages": [HumanMessage(content=query)],
+        "load_memory": runtime.state.get("loaded_memory", {})
+    })
+    subagent_response = result["messages"][-1].content
+    return subagent_response
+
+
+# 构建监督者 agent
+supervisor = create_agent(
+    model=model,
+    tools=[call_music_catalog_subagent, call_invoice_information_subagent],
+    name="supervisor",
+    system_prompt=supervisor_prompt,
+    state_schema=State
+)
