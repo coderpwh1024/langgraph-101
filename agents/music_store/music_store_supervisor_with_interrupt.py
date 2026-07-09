@@ -1,9 +1,10 @@
 import ast
 
 from langchain_community.utilities import SQLDatabase
-from langchain_core.messages import AnyMessage
+from langchain_core.messages import AnyMessage, AIMessage, SystemMessage, HumanMessage
 from langgraph.graph import add_messages
 from langgraph.managed import RemainingSteps
+from langgraph.types import interrupt
 from typedict import TypeDict
 from typing import Annotated, Optional, NotRequired
 
@@ -65,3 +66,59 @@ def get_customer_id_from_identifier(identifier: str) -> Optional[int]:
         if formatted_result:
             return formatted_result[0][0]
     return None
+
+
+# 校验信息
+def verify_info(state: State):
+    """通过解析客户输入并与数据库匹配来验证客户账户。"""
+
+    if state.get("customer_id") is None:
+        system_instructions = """你是一个音乐商店智能体，当前正在执行客服流程的第一步：验证客户身份。
+
+          只有在客户账户验证通过后，你才能继续帮助他们解决问题。
+
+          为了验证客户身份，客户需要提供 customer ID、邮箱或手机号中的任意一种。
+
+          如果客户尚未提供标识符，请向他们索要。
+          如果客户已经提供了标识符但无法找到对应账户，请要求他们修改后重新提供。"""
+
+        user_input = state["messages"][-1]
+
+        # Parse for customer ID
+        parsed_info = structured_llm.invoke([SystemMessage(content=structured_system_prompt)] + [user_input])
+
+        # Extract details
+        identifier = parsed_info.identifier
+
+        customer_id = ""
+        # Attempt to find the customer ID
+        if (identifier):
+            customer_id = get_customer_id_from_identifier(identifier)
+
+        if customer_id != "":
+            intent_message = AIMessage(
+                content=f"Thank you for providing your information! I was able to verify your account with customer id {customer_id}."
+            )
+            return {
+                "customer_id": customer_id,
+                "messages": [intent_message]
+            }
+        else:
+            response = model.invoke([SystemMessage(content=system_instructions)] + state['messages'])
+            return {"messages": [response]}
+
+    else:
+        pass
+
+
+def human_input(state: State):
+    """空操作节点，用于在此处触发中断。"""
+    user_input = interrupt("Please provide input.")
+    return {"messages": [HumanMessage(content=user_input)]}
+
+
+def should_interrupt(state: State):
+    if state.get("customer_id") is not None:
+        return "continue"
+    else:
+        return "interrupt"
