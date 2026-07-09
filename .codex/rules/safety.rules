@@ -165,6 +165,23 @@ prefix_rule(
     ],
 )
 
+ # ---------- 常用只读校验工具 ----------
+
+prefix_rule(
+      pattern = ["jq", ["empty", "."]],
+      decision = "allow",
+      justification = "允许使用 jq 做本地 JSON 解析校验，避免启动 Python/Node 读取沙箱外运行时依赖",
+      match = [
+          ["jq", "empty", "langgraph.json"],
+          ["jq", ".", "langgraph.json"],
+      ],
+      not_match = [
+          ["jq", "--raw-output", ".", "langgraph.json"],
+      ],
+)
+
+
+
 # ---------- baoyu-imagine 图片生成 ----------
 prefix_rule(
     pattern = [
