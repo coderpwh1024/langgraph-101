@@ -1,9 +1,12 @@
+import operator
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Annotated
+from typing import TypeDict
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, MessageLikeRepresentation
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 
@@ -90,4 +93,27 @@ def qwen_websearch_called(response: AIMessage) -> bool:
     )
 
 
+print("\n")
 print("✓ 已加载项目统一配置的千问模型（阿里云百炼）")
+print("\n")
+
+print(
+    "--------------------01-构建一个单例搜索 Agent--------------------"
+)
+print("\n")
+
+
+# 研究的状态实体类
+class ResearcherState(TypeDict):
+    """单个研究员智能体的状态"""
+    researcher_messages: Annotated[list[MessageLikeRepresentation], operator.add]
+    researcher_topic: str
+    tool_call_iterations: int
+
+
+# 输出实体类
+class ResearcherOutputState(TypeDict):
+    """研究员的输出——仅包含压缩后的研究结果"""
+    researcher_messages: Annotated[list[MessageLikeRepresentation], operator.add]
+    researcher_research: str
+    raw_notes: list
