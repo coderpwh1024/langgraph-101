@@ -15,6 +15,8 @@ from langchain_core.messages import MessageLikeRepresentation
 from langchain_core.messages import SystemMessage
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
+from langgraph.constants import START, END
+from langgraph.graph import StateGraph
 from langgraph.types import Command
 
 # 将 notebooks 目录加入 sys.path，以便以脚本方式运行时能 import utils
@@ -369,3 +371,40 @@ async def compress_research(state: ResearcherState, config):
         "compressed_research": str(response.content),
         "raw_notes_content": [raw_notes_content]
     }
+
+
+# 构建 StateGraph
+researcher_builder = StateGraph(ResearcherState, output_schema=ResearcherOutputState)
+
+# 添加节点
+researcher_builder.add_node("researcher", researcher)
+researcher_builder.add_node("researcher_tools", researcher_tools)
+researcher_builder.add_node("compress_research", compress_research)
+
+researcher_builder.add_edge(START, "researcher")
+researcher_builder.add_edge("researcher", "researcher_tools")
+researcher_builder.add_edge("compress_research", END)
+
+researcher_graph = researcher_builder.build()
+researcher_graph
+
+test_query = "使用 LLM 进行提示词工程的最佳实践是什么？"
+initial_state = {
+    "researcher_messages": [HumanMessage(content=test_query)],
+    "researcher_topic": test_query,
+    "tool_call_iterations": 0
+}
+
+result = await researcher_graph.ainoke(initial_state)
+print("\n")
+print("="*60)
+print("研究员消息历史：")
+print("="*60)
+print("\n")
+
+for message in result["researcher_messages"]:
+    message.pretty_print()
+
+print("\n" + "="*60)
+print("="*60)
+print(result["compressed_research"])
