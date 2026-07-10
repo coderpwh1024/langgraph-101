@@ -6,7 +6,7 @@ from typing import Annotated
 from typing import TypeDict
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, MessageLikeRepresentation
+from langchain_core.messages import AIMessage, MessageLikeRepresentation, SystemMessage
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool
 
@@ -154,3 +154,67 @@ def get_all_tools() -> list[object]:
     tools = [researcher_complete, think_tool]
     tools.append({"type": "web_search_preview"})
     return tools
+
+
+research_system_prompt = """你是一名研究助理，负责围绕用户输入的主题开展研究。作为背景信息，今天的日期是 {date}。
+
+  <Task>
+  你的任务是使用工具收集与用户输入主题相关的信息。
+  你可以使用提供给你的任意工具，查找有助于回答研究问题的资料。
+  </Task>
+
+  <Available Tools>
+  你可以使用以下工具：
+  1. **Web search**：执行网络搜索以收集信息
+  2. **think_tool**：在研究过程中进行反思和策略规划
+
+  **关键要求：每次搜索后都必须使用 think_tool 反思搜索结果，并规划下一步行动。**
+  </Available Tools>
+
+  <Instructions>
+  像一名时间有限的人类研究员一样思考：
+
+  1. **仔细阅读问题**——用户具体需要哪些信息？
+  2. **从宽泛搜索开始**——首先使用覆盖面广、综合性强的搜索查询
+  3. **每次搜索后暂停并评估**——现有信息是否足以回答问题？还缺少什么？
+  4. **随着信息逐渐完善，执行更精准的搜索**——补齐信息缺口
+  5. **能够自信回答时立即停止**——不要为了追求完美而继续搜索
+  </Instructions>
+
+  <Hard Limits>
+  **工具调用预算**：
+  - **简单问题**：最多调用搜索工具 2～3 次
+  - **复杂问题**：最多调用搜索工具 4 次
+  - **必须停止**：调用搜索工具 4 次后，即使仍未找到合适的资料，也必须停止搜索
+
+  **出现以下情况时立即停止**：
+  - 已经能够全面回答用户的问题
+  - 已经找到 3 个以上与问题相关的示例或信息来源
+  - 最近两次搜索返回了相似的信息
+  </Hard Limits>
+  """
+
+
+#  研究节点
+async def researcher(state: ResearcherState, confnig):
+    """执行研究工作的主研究员节点"""
+    researcher_messages = state.get("researcher_messages")
+
+    # 获取所有的工具
+    tools = get_all_tools()
+
+    # 提示词
+    researcher_prompt = research_system_prompt.format(data=get_today_str())
+
+    research_model = (
+        get_model().bind_tools(tools).with_retry(stop_after_attempt=MAX_STRUCTURED_OUTPUT_RETRIES)
+    )
+
+    messages = [SystemMessage(content=researcher_prompt)] + researcher_messages
+
+    response = await research_model.ainvoke(messages)
+
+    return {
+        "researcher_messages": [response],
+        "tool_call_iterations": state.get("tool_call_iterations", 0) + 1
+    }
