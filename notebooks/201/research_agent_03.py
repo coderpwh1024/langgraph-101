@@ -117,3 +117,40 @@ class ResearcherOutputState(TypeDict):
     researcher_messages: Annotated[list[MessageLikeRepresentation], operator.add]
     researcher_research: str
     raw_notes: list
+
+
+print("\n")
+
+
+@tool(description="表示研究已完成")
+def researcher_complete() -> str:
+    """在收集到足够信息后标记研究完成。
+
+    Returns:
+        研究已完成的确认信息。
+    """
+    return "研究已标记为完成"
+
+
+@tool(description="用于研究规划的战略性反思工具")
+def think_tool(reflection: str) -> str:
+    """每次搜索后使用此工具分析结果并规划后续步骤。
+
+    Args:
+        reflection: 对研究进展和后续步骤的详细反思。
+
+    Returns:
+        已记录的研究反思。
+    """
+    return f"反思已记录：{reflection}"
+
+
+def get_all_tools() -> list[object]:
+    """获取所有可用的研究工具。
+
+    Returns:
+        研究阶段可调用的工具列表。
+    """
+    tools = [researcher_complete, think_tool]
+    tools.append({"type": "web_search_preview"})
+    return tools
