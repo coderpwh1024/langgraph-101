@@ -9,7 +9,7 @@ from typing import Literal
 from typing import TypedDict
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, filter_messages
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import MessageLikeRepresentation
 from langchain_core.messages import SystemMessage
@@ -238,8 +238,8 @@ async def researcher(state: ResearcherState, config: dict[str, Any]) -> dict:
 
 # 执行工具时统一捕获异常，避免单个工具失败中断其他并发任务。
 async def execute_tool_safely(
-    selected_tool: Any,
-    arguments: dict[str, Any],
+        selected_tool: Any,
+        arguments: dict[str, Any],
 ) -> str:
     """安全地执行工具，并将异常转换为可供模型理解的结果。
 
@@ -260,8 +260,8 @@ async def execute_tool_safely(
 
 # 研究工具节点负责并发执行模型发起的工具调用，并决定下一跳。
 async def researcher_tools(
-    state: ResearcherState,
-    config: dict[str, Any],
+        state: ResearcherState,
+        config: dict[str, Any],
 ) -> Command[Literal["researcher", "compress_research"]]:
     """执行研究员调用的工具并选择后续节点。
 
@@ -313,7 +313,7 @@ async def researcher_tools(
         tool_outputs.append(tool_message)
 
     exceeded_iterations = (
-        state.get("tool_call_iterations", 0) >= MAX_REACT_TOOL_CALLS
+            state.get("tool_call_iterations", 0) >= MAX_REACT_TOOL_CALLS
     )
 
     research_complete = False
@@ -329,3 +329,43 @@ async def researcher_tools(
         )
 
     return Command(goto="researcher", update={"researcher_messages": tool_outputs})
+
+
+# 压缩 research 节点
+compress_research_system_prompt = """你是一名已经围绕某个主题开展研究的研究助理。你的任务是整理研究发现。
+
+  <Task>
+  整理通过工具调用和网页搜索收集到的信息。所有相关信息都应逐字保留。
+  此工作的目的仅是删除明显无关或重复的信息。
+  </Task>
+
+  <Guidelines>
+  1. 输出必须全面，并包含收集到的所有信息和来源
+  2. 为每个来源添加行内引用，如 [1]、[2] 等
+  3. 在结尾添加“来源”部分，列出所有带引用编号的来源
+  4. 确保包含所有来源——后续的 LLM 会将此报告与其他报告合并
+  </Guidelines>
+  """
+
+
+# 压缩 research 节点
+async def compress_research(state: ResearcherState, config):
+    """压缩并综合研究发现"""
+    researcher_messages = state.get("researcher_messages", [])
+    researcher_messages.append(HumanMessage(content="请整理这些研究发现。不要总结——请逐字保留所有相关信息"))
+
+    # 提示词
+    compression_prompt = compress_research_system_prompt
+    messages = [SystemMessage(content=compression_prompt)] + researcher_messages
+
+    response = await  get_model().ainvoke(messages)
+
+    raw_notes_content = []
+    for message in filter_messages(researcher_messages, include_types=["tool", "ai"]):
+        raw_notes_content.append(str(message.content))
+    raw_notes_content = "\n".join(raw_notes_content)
+
+    return {
+        "compressed_research": str(response.content),
+        "raw_notes_content": [raw_notes_content]
+    }
