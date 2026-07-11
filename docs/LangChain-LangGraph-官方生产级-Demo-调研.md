@@ -1,4 +1,4 @@
-# LangChain / LangGraph 官方生产级 Demo 调研
+# LangChain / LangGraph 官方生产级  调研
 
 > 调研时间：2026-07-09  
 > 范围：`langchain-ai` 官方 GitHub 组织、LangChain / LangGraph / LangSmith 官方文档与官方模板仓库。  
