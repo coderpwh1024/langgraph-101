@@ -389,7 +389,7 @@ researcher_builder.add_edge("compress_research", END)
 researcher_graph = researcher_builder.compile()
 researcher_graph
 
-test_query = "2026年世界杯，预测一下阿根廷vs瑞士,分析一下谁会赢"
+test_query = "2026年世界杯，预测一下阿根廷VS英格兰，谁赢谁输?概率有多大？"
 initial_state = {
     "researcher_messages": [HumanMessage(content=test_query)],
     "researcher_topic": test_query,
