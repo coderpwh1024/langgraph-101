@@ -655,9 +655,8 @@ initial_state = {
     "raw_notes": []
 }
 
-# result = await supervisor_graph.ainvoke(initial_state)
-
-result = asyncio.gather(supervisor_graph.ainvoke(initial_state))
+# 顶层脚本没有运行中的事件循环，使用 asyncio.run 执行协程并取得状态字典。
+result = asyncio.run(supervisor_graph.ainvoke(initial_state))
 
 print("\n")
 print("=" * 60)
