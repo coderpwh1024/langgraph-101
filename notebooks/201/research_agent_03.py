@@ -19,6 +19,8 @@ from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 from langgraph.types import Command
 
+from notebooks.utils.utils import show_graph
+
 # 将 notebooks 目录加入 sys.path，以便以脚本方式运行时能 import utils
 project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
@@ -616,3 +618,20 @@ async def supervisor_tools(state: SupervisorState, config, obs=None) -> Command[
     # 更新消息
     update_payload["supervisor_messages"] = all_tool_messages
     return Command(goto="supervisor", update=update_payload)
+
+
+# 构建Graph
+supervisor_builder = StateGraph(SupervisorState)
+
+# 添加 node
+supervisor_builder.add_node("supervisor", supervisor)
+supervisor_builder.add_node("supervisor_tools", supervisor_tools)
+
+# 添加 edge
+supervisor_builder.add_edge(START, "supervisor")
+supervisor_builder.add_edge("supervisor", "supervisor_tools")
+
+# 编译
+supervisor_graph = supervisor_builder.compile()
+
+show_graph(supervisor_graph, xray=True)
