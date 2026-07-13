@@ -375,19 +375,19 @@ async def compress_research(state: ResearcherState) -> dict:
     }
 
 
-# # 构建 StateGraph
-# researcher_builder = StateGraph(ResearcherState, output_schema=ResearcherOutputState)
-#
-# # 添加节点
-# researcher_builder.add_node("researcher", researcher)
-# researcher_builder.add_node("researcher_tools", researcher_tools)
-# researcher_builder.add_node("compress_research", compress_research)
-#
-# researcher_builder.add_edge(START, "researcher")
-# researcher_builder.add_edge("researcher", "researcher_tools")
-# researcher_builder.add_edge("compress_research", END)
-#
-# researcher_graph = researcher_builder.compile()
+# 构建 StateGraph
+researcher_builder = StateGraph(ResearcherState, output_schema=ResearcherOutputState)
+
+# 添加节点
+researcher_builder.add_node("researcher", researcher)
+researcher_builder.add_node("researcher_tools", researcher_tools)
+researcher_builder.add_node("compress_research", compress_research)
+
+researcher_builder.add_edge(START, "researcher")
+researcher_builder.add_edge("researcher", "researcher_tools")
+researcher_builder.add_edge("compress_research", END)
+
+researcher_graph = researcher_builder.compile()
 # researcher_graph
 #
 # test_query = "2026年世界杯，预测一下阿根廷VS英格兰，谁赢谁输?概率有多大？"
@@ -427,6 +427,7 @@ def override_reducer(current_value, new_value):
         return operator.add(current_value, new_value)
 
 
+# 监督这状态实体
 class SupervisorState(TypedDict):
     """监督者智能体的状态"""
     supervisor_messages: Annotated[list[MessageLikeRepresentation], override_reducer]
@@ -434,3 +435,30 @@ class SupervisorState(TypedDict):
     notes: Annotated[list[str], override_reducer] = []
     research_iterations: int = 0
     raw_notes: Annotated[list[str], override_reducer] = []
+
+
+@tool(description="将研究任务委派给专业研究员")
+async def ConductResearch(research_topic: str) -> dict:
+    """将特定研究主题委派给研究员智能体。
+
+     Args:
+         research_topic: 供子智能体研究的清晰、具体的问题。
+     """
+    result = await  researcher_graph.invoke(
+        {
+            "researcher_messages": [HumanMessage(content=research_topic)],
+            "researcher_topic": research_topic,
+            "tool_call_iterations": 0
+        }
+    )
+
+    return {
+        "compressed_research": result.get("compressed_research", "Error in research"),
+        "raw_notes": result.get("raw_notes", [])
+    }
+
+
+@tool(description="标记所有研究工作已完成")
+def ResearchComplete():
+    """已收集完所有必要信息时调用此工具"""
+    return "研究已标记为完成"
