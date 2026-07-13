@@ -1,6 +1,7 @@
 import asyncio
 import operator
 import sys
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated
@@ -9,15 +10,16 @@ from typing import Literal
 from typing import TypedDict
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, filter_messages
+from langchain_core.messages import AIMessage, filter_messages, get_buffer_string
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import MessageLikeRepresentation
 from langchain_core.messages import SystemMessage
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
-from langgraph.types import Command
+from langgraph.types import Command, interrupt
 
 from notebooks.utils.utils import show_graph
 
@@ -683,3 +685,289 @@ print(
     "--------------------03-Human in the LOOP ---------------------------------------"
 )
 print("\n")
+
+
+# 智能体的状态
+class AgentState(TypedDict):
+    """完整研究智能体的状态"""
+    messages: Annotated[list[MessageLikeRepresentation], override_reducer]
+    # 是否需要详细解释
+    need_elaboration: bool
+    # 详细解释
+    research_brief: str
+    supervisor_messages: Annotated[list[MessageLikeRepresentation], override_reducer]
+    # 迭代次数
+    research_iterations: int
+    notes: Annotated[list[str], override_reducer] = []
+    raw_notes: Annotated[list[str], override_reducer] = []
+    # 最终报告
+    final_report: str
+
+
+#  Agnet输入状态
+class AgentInputState(TypedDict):
+    """智能体的输入——仅包含用户消息"""
+    messages: list
+
+
+# 人工阐述
+class ClarifyWithUser(TypedDict):
+    """用于澄清的结构化输出"""
+    # 是否需要澄清
+    need_elaboration: bool
+    #  问题
+    question: str
+    # 验证
+    verification: str
+
+
+# 人工阐述结构提示词
+clarify_with_user_instructions = """以下是目前为止交换的消息：
+  <Messages>
+  {messages}
+  </Messages>
+
+  今天的日期是 {date}。
+
+  请判断你是否需要提出澄清问题。
+
+  如果需要提问：
+  - 简洁地收集必要信息
+  - 不要询问已经提供的信息
+
+  请以 JSON 格式响应，并包含以下键：
+  {{"need_elaboration": boolean, "question": "...", "verification": "..."}}
+
+  如果需要澄清：
+  {{"need_elaboration": true, "question": "<你的问题>", "verification": ""}}
+
+  如果无需澄清：
+  {{"need_elaboration": false, "question": "", "verification": "<确认消息>"}}
+  """
+
+
+# 人工阐述-函数
+async def clarify_with_user(state: AgentState, config):
+    """如有需要，通过人在回路（human-in-the-loop）机制提出澄清问题"""
+
+    messages = state["messages"]
+
+    # 构建模型
+    clarification_model = (get_model().with_structured_output(ClarifyWithUser).with_retry(
+        stop_after_attempt=MAX_STRUCTURED_OUTPUT_RETRIES))
+
+    # 提示词
+    prompt_content = clarify_with_user_instructions.format(
+        messages=get_buffer_string(messages),
+        date=get_today_str()
+    )
+
+    response = await clarification_model.ainvoke([HumanMessage(content=prompt_content)])
+
+    if response["need_elaboration"]:
+        return {"messages": [AIMessage(content=response["question"])], "need_elaboration": True}
+    else:
+        return {"messages": [AIMessage(content=response["verification"])], "need_elaboration": False}
+
+
+# 人工输入
+async def human_input(state: AgentState, config):
+    ai_question = state["messages"][-1].content
+    user_response = interrupt(ai_question)
+    return {"messages": [HumanMessage(content=user_response)], "need_elaboration": False}
+
+
+# 研究问题
+class ResearchQuestion(TypedDict):
+    """结构化的研究问题"""
+    research_brief: str
+
+
+# 创建研究问题
+create_research_brief_prompt = """请将以下消息转化为一个详细的研究问题：
+
+  <Messages>
+  {messages}
+  </Messages>
+
+  今天的日期是 {date}。
+
+  指南：
+  1. 尽可能具体、详细地描述问题，并包含用户的所有偏好。
+  2. 对未明确说明但研究所必需的维度，保持开放式表述。
+  3. 避免作出没有依据的假设。
+  4. 使用第一人称，从用户的视角进行表述。
+  5. 对产品或旅行相关研究，优先参考官方来源。
+  """
+
+
+# 创建研究问题-函数
+async def write_research_brief(state: AgentState, config) -> Command[Literal["research_supervisor"]]:
+    """将用户消息转化为结构化的研究简报"""
+
+    # 构建模型
+    researcher_model = (
+        get_model().with_structured_output(ResearchQuestion)
+        .with_retry(stop_after_attempt=MAX_STRUCTURED_OUTPUT_RETRIES)
+    )
+
+    # 提示词
+    prompt_content = create_research_brief_prompt.format(
+        messages=get_buffer_string(state.get("messages", [])),
+        date=get_today_str()
+    )
+
+    response = await researcher_model.ainvoke([HumanMessage(content=prompt_content)])
+
+    supervisor_system_prompt = lead_researcher_prompt.format(
+        date=get_today_str(),
+        max_concurrent_research_units=MAX_CONCURRENT_RESEARCH_UNITS,
+        max_researcher_iterations=MAX_RESEARCHER_ITERATIONS
+    )
+
+    return {
+        "research_brief": response["research_brief"],
+        "supervisor_messages": {
+            "type": "override",
+            "value": [
+                SystemMessage(content=supervisor_system_prompt),
+                HumanMessage(content=response["research_brief"])
+
+            ]
+        }
+
+    }
+
+
+# 最终的报告
+final_report_generation_prompt = """基于已完成的全部研究，为以下研究简报生成一份全面的回答：
+
+  <Research Brief>
+  {research_brief}
+  </Research Brief>
+
+  今天的日期是 {date}。
+
+  以下是研究发现：
+  <Findings>
+  {findings}
+  </Findings>
+
+  请生成一份详细回答，并满足以下要求：
+  1. 结构清晰，使用恰当的标题层级（# 用于标题，## 用于章节）
+  2. 包含研究中的具体事实
+  3. 使用 [标题](URL) 格式引用来源
+  4. 提供全面的分析
+  5. 在末尾包含“来源”章节
+
+  请根据报告类型合理组织结构：
+  - 对比类：引言 → A 概览 → B 概览 → 对比 → 结论
+  - 列表类：直接列出清单及详细说明
+  - 总结类：概览 → 核心概念 → 结论
+
+  章节标题使用 ##。请充分展开——用户期待深入的研究报告。
+  """
+
+
+# 最终报告-函数
+async def final_report_generation(state: AgentState, config):
+    """生成最终的综合研究报"""
+    notes = state.get("notes", [])
+    findings = "\n".join(notes)
+
+    # 提示词
+    final_report_prompt = final_report_generation_prompt.format(
+        research_brief=state.get("research_brief", ""),
+        messages=get_buffer_string(state.get("messages", [])),
+        findings=findings,
+        date=get_today_str()
+    )
+
+    # 结果
+    final_report = await get_model().ainvoke([HumanMessage(content=final_report_prompt)])
+
+    return {
+        "final_report": final_report.content,
+        "messages": [AIMessage(content=final_report.content)],
+        "notes": {"type": "override", "value": []}
+
+    }
+
+
+def human_feedback_needed(
+    state: AgentState,
+) -> Literal["human_input", "write_research_brief"]:
+    """根据是否需要澄清决定下一个节点。"""
+    if state.get("need_elaboration", False):
+        return "human_input"
+    return "write_research_brief"
+
+
+checkpointer = MemorySaver()
+
+# 构建
+deep_researcher_builder = StateGraph(AgentState, input_schema=AgentInputState)
+
+# 添加 node
+deep_researcher_builder.add_node("clarify_with_user", clarify_with_user)
+deep_researcher_builder.add_node("human_input", human_input)
+deep_researcher_builder.add_node("write_research_brief", write_research_brief)
+deep_researcher_builder.add_node("research_supervisor", supervisor_graph)
+deep_researcher_builder.add_node("final_report_generation", final_report_generation)
+
+# 添加 edge
+deep_researcher_builder.add_edge(START, "clarify_with_user")
+deep_researcher_builder.add_conditional_edges(
+    "clarify_with_user",
+    human_feedback_needed,
+    {
+        "human_input": "human_input",
+        "write_research_brief": "write_research_brief"
+    }
+)
+
+deep_researcher_builder.add_edge("human_input", "clarify_with_user")
+deep_researcher_builder.add_edge("write_research_brief", "research_supervisor")
+deep_researcher_builder.add_edge("research_supervisor", "final_report_generation")
+deep_researcher_builder.add_edge("final_report_generation", END)
+
+# 编译
+deep_research_graph = deep_researcher_builder.compile(checkpointer=checkpointer)
+show_graph(deep_research_graph, xray=True)
+
+test_query = "2026世界杯,分析即将上演的英阿大战"
+
+initial_state = {
+    "messages": [HumanMessage(content=test_query)]
+}
+
+config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+print("开始进行 research workflow...")
+print("\n")
+
+# result = await deep_research_graph.ainvoke(initial_state, config=config)
+result = asyncio.run(deep_research_graph.ainvoke(initial_state, config=config))
+
+if "__interrupt__" in result:
+    print("\n" + "=" * 60)
+    print("中断：检测到澄清问题")
+    print("=" * 60)
+
+    state_snapshot = deep_research_graph.get_state(config)
+
+    if hasattr(state_snapshot, 'tasks') and state_snapshot.tasks:
+        for task in state_snapshot.tasks:
+            if hasattr(task, 'interrupts') and task.interrupts:
+                for interrupt_info in task.interrupts:
+                    print(f"问题: {interrupt_info.value}")
+
+
+# result = await deep_research_graph.ainvoke(Command(resume="No preferences. Use your best judgement, and don't ask any further questions."), config=config)
+
+
+result = asyncio.run(deep_research_graph.ainvoke(Command(resume="没有特别偏好。请根据你的最佳判断处理，不要再询问任何问题"), config=config))
+
+print("\n" + "="*60)
+print("FINAL RESEARCH REPORT:")
+print("="*60)
+print(result["final_report"])
