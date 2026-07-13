@@ -636,7 +636,7 @@ supervisor_graph = supervisor_builder.compile()
 
 show_graph(supervisor_graph, xray=True)
 
-research_brief = "推荐一些纽约市的中餐馆和印度餐馆"
+research_brief = "2026世界杯，全面分析阿根廷vs英格拉"
 
 supervisor_system_prompt = lead_researcher_prompt.format(
     date=get_today_str(),
