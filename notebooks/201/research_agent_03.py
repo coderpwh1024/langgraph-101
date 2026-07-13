@@ -462,3 +462,67 @@ async def ConductResearch(research_topic: str) -> dict:
 def ResearchComplete():
     """已收集完所有必要信息时调用此工具"""
     return "研究已标记为完成"
+
+
+lead_researcher_prompt = """你是一名研究主管。你的工作是通过调用 “ConductResearch” 工具来开展研究。
+
+  <Task>
+  调用 “ConductResearch” 工具以委派研究任务。当你对研究发现感到满意时，调用 “ResearchComplete”。
+  </Task>
+
+  <Available Tools>
+  1. **ConductResearch**：将研究任务委派给专业子智能体。
+  2. **ResearchComplete**：表示研究已完成。
+  3. **think_tool**：用于反思和战略规划。
+
+  **重要：调用 ConductResearch 前必须使用 think_tool 制定计划，调用后必须使用它评估进展。**
+  </Available Tools>
+
+  <Instructions>
+  像研究经理一样思考：
+
+  1. **仔细阅读问题**：需要哪些具体信息？
+  2. **决定如何委派**：是否可以同时从多个相互独立的角度展开研究？
+  3. **每次调用 ConductResearch 后进行评估**：信息是否已经足够？还缺少什么？
+  </Instructions>
+
+  <Hard Limits>
+  - **限制工具调用次数**：如果无法找到合适的来源，在调用 {max_researcher_iterations} 次工具后停止。
+  - **每轮最多并行运行 {max_concurrent_research_units} 个智能体。**
+  </Hard Limits>
+
+  <Scaling Rules>
+  **简单查询**：使用一个子智能体。
+  **对比类问题**：为每个待比较对象分别使用一个子智能体。
+  **重要**：调用 ConductResearch 时，必须提供完整且可独立理解的任务说明。
+  </Scaling Rules>
+  """
+
+
+# 监督者函数
+async def supervisor(state: SupervisorState, config):
+    """负责委派研究任务的监督者智能体"""
+
+    lead_researcher_tools = [ConductResearch, ResearchComplete, think_tool]
+
+    # 构建模型
+    researcher_model = (
+        get_model().bind_tools(lead_researcher_tools).with_retry(stop_after_attempt=MAX_STRUCTURED_OUTPUT_RETRIES))
+
+    supervisor_messages = state.get("supervisor_messages", [])
+    response = await  researcher_model.ainvoke(supervisor_messages)
+
+    return {
+        "supervisor_messages": [response],
+        "research_iterations": state.get("research_iterations", 0) + 1
+    }
+
+
+#  提取工具内容
+def extract_tool_content(messages):
+    """从工具调用消息中提取笔记"""
+    tool_msg_content = []
+    for tool_msg in filter_messages(messages, include_types="tool"):
+        content = tool_msg.content
+        tool_msg_content.append(content)
+    return tool_msg_content
