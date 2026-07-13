@@ -638,39 +638,48 @@ show_graph(supervisor_graph, xray=True)
 
 research_brief = "2026世界杯，全面分析阿根廷vs英格拉"
 
-supervisor_system_prompt = lead_researcher_prompt.format(
-    date=get_today_str(),
-    max_concurrent_research_units=MAX_CONCURRENT_RESEARCH_UNITS,
-    max_researcher_iterations=MAX_RESEARCHER_ITERATIONS
+# supervisor_system_prompt = lead_researcher_prompt.format(
+#     date=get_today_str(),
+#     max_concurrent_research_units=MAX_CONCURRENT_RESEARCH_UNITS,
+#     max_researcher_iterations=MAX_RESEARCHER_ITERATIONS
+# )
+#
+# initial_state = {
+#     "supervisor_messages": [
+#         SystemMessage(content=supervisor_system_prompt),
+#         HumanMessage(content=research_brief)
+#     ],
+#     "research_brief": research_brief,
+#     "research_iterations": 0,
+#     "notes": [],
+#     "raw_notes": []
+# }
+#
+# # 顶层脚本没有运行中的事件循环，使用 asyncio.run 执行协程并取得状态字典。
+# result = asyncio.run(supervisor_graph.ainvoke(initial_state))
+#
+# print("\n")
+# print("=" * 60)
+# print("SUPERVISOR MESSAGE HISTORY:")
+# print("=" * 60)
+# print("\n")
+#
+# for message in result["supervisor_messages"]:
+#     message.pretty_print()
+#
+# print("\n" + "=" * 60)
+# print("COLLECTED RESEARCH NOTES:")
+# print("=" * 60)
+# print("\n")
+# for i, note in enumerate(result["notes"], 1):
+#     print(f"\n--- Research Finding {i} ---")
+#     print(note[:500] + "..." if len(note) > 500 else note)
+
+print("\n")
+print("\n")
+
+print("\n")
+print(
+    "--------------------03-Human in the LOOP ---------------------------------------"
 )
-
-initial_state = {
-    "supervisor_messages": [
-        SystemMessage(content=supervisor_system_prompt),
-        HumanMessage(content=research_brief)
-    ],
-    "research_brief": research_brief,
-    "research_iterations": 0,
-    "notes": [],
-    "raw_notes": []
-}
-
-# 顶层脚本没有运行中的事件循环，使用 asyncio.run 执行协程并取得状态字典。
-result = asyncio.run(supervisor_graph.ainvoke(initial_state))
-
 print("\n")
-print("=" * 60)
-print("SUPERVISOR MESSAGE HISTORY:")
-print("=" * 60)
-print("\n")
-
-for message in result["supervisor_messages"]:
-    message.pretty_print()
-
-print("\n" + "=" * 60)
-print("COLLECTED RESEARCH NOTES:")
-print("=" * 60)
-print("\n")
-for i, note in enumerate(result["notes"], 1):
-    print(f"\n--- Research Finding {i} ---")
-    print(note[:500] + "..." if len(note) > 500 else note)
