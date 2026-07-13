@@ -635,3 +635,43 @@ supervisor_builder.add_edge("supervisor", "supervisor_tools")
 supervisor_graph = supervisor_builder.compile()
 
 show_graph(supervisor_graph, xray=True)
+
+research_brief = "推荐一些纽约市的中餐馆和印度餐馆"
+
+supervisor_system_prompt = lead_researcher_prompt.format(
+    date=get_today_str(),
+    max_concurrent_research_units=MAX_CONCURRENT_RESEARCH_UNITS,
+    max_researcher_iterations=MAX_RESEARCHER_ITERATIONS
+)
+
+initial_state = {
+    "supervisor_messages": [
+        SystemMessage(content=supervisor_system_prompt),
+        HumanMessage(content=research_brief)
+    ],
+    "research_brief": research_brief,
+    "research_iterations": 0,
+    "notes": [],
+    "raw_notes": []
+}
+
+# result = await supervisor_graph.ainvoke(initial_state)
+
+result = asyncio.gather(supervisor_graph.ainvoke(initial_state))
+
+print("\n")
+print("=" * 60)
+print("SUPERVISOR MESSAGE HISTORY:")
+print("=" * 60)
+print("\n")
+
+for message in result["supervisor_messages"]:
+    message.pretty_print()
+
+print("\n" + "=" * 60)
+print("COLLECTED RESEARCH NOTES:")
+print("=" * 60)
+print("\n")
+for i, note in enumerate(result["notes"], 1):
+    print(f"\n--- Research Finding {i} ---")
+    print(note[:500] + "..." if len(note) > 500 else note)
