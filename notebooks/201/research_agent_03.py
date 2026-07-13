@@ -526,3 +526,93 @@ def extract_tool_content(messages):
         content = tool_msg.content
         tool_msg_content.append(content)
     return tool_msg_content
+
+
+async def supervisor_tools(state: SupervisorState, config, obs=None) -> Command[Literal["supervisor", "__end__"]]:
+    """执行由监督者调用的工具"""
+
+    supervisor_messages = state.get("supervisor_messages", [])
+    research_iterations = state.get("research_iterations", 0)
+    most_recent_message = supervisor_messages[-1]
+
+    exceeded_iterations = research_iterations > MAX_RESEARCHER_ITERATIONS
+    no_tool_calls = not most_recent_message.tool_calls
+
+    research_complete = False
+    for tc in most_recent_message.tool_calls:
+        if tc["name"] == "ResearchComplete":
+            research_complete = True
+            break
+
+    # 检查是否完成
+    if exceeded_iterations or no_tool_calls or research_complete:
+        return Command(goto=END, update={
+            "notes": extract_tool_content(supervisor_messages),
+            "research_brief": state.get("research_brief", "")
+        })
+
+    all_tool_messages = []
+    update_payload = {"supervisor_messages": []}
+
+    for tc in most_recent_message.tool_calls:
+        if tc["name"] == "think_tool":
+            all_tool_messages.append(
+                ToolMessage(content=f"Reflection recorded: {tc['args']['reflection']}", name="think_tool",
+                            tool_call_id=tc["id"]))
+
+    # 判断是否调用了ConductResearch工具
+    conduct_research_calls = False
+    for tc in most_recent_message.tool_calls:
+        if tc["name"] == "ConductResearch":
+            conduct_research_calls = True
+            break
+
+    if conduct_research_calls:
+        try:
+            # 获取允许的调用
+            allowed_calls = conduct_research_calls[:MAX_CONCURRENT_RESEARCH_UNITS]
+            # 获取剩余的调用
+            overflow_calls = conduct_research_calls[MAX_CONCURRENT_RESEARCH_UNITS:]
+
+            research_tasks = []
+            for tc in allowed_calls:
+                conduct_result = ConductResearch.ainvoke(tc["args"])
+                research_tasks.append(conduct_result)
+
+            # 等待所有任务完成
+            tool_results = await  asyncio.gather(*research_tasks)
+
+            for observation_dict, tc in zip(tool_results, allowed_calls):
+                all_tool_messages.append(ToolMessage(
+                    content=observation_dict.get("compressed_research", "Error in research"),
+                    name=tc["name"],
+                    tool_call_id=tc["id"],
+                ))
+
+            # 处理多余的调用
+            for overflow_call in overflow_calls:
+                all_tool_messages.append(ToolMessage(
+                    content=f"错误：超过最大并发单元数（{MAX_CONCURRENT_RESEARCH_UNITS}）",
+                    name="ConductResearch",
+                    tool_call_id=overflow_call["id"]
+                ))
+
+            raw_notes_concat = {}
+            raw_notes_array = []
+            for obs in tool_results:
+                raw_notes_array.append("\n".join(obs.get("raw_notes", [])))
+
+            raw_notes_concat = "\n".join(raw_notes_array)
+
+            if raw_notes_concat:
+                update_payload["raw_notes"] = [raw_notes_concat]
+
+        except Exception as e:
+            return Command(goto=END, update={
+                "notes": extract_tool_content(supervisor_messages),
+                "research_brief": state.get("research_brief", "")
+            })
+
+    # 更新消息
+    update_payload["supervisor_messages"] = all_tool_messages
+    return Command(goto="supervisor", update=update_payload)
