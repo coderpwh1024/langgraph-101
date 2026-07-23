@@ -231,7 +231,79 @@
 6. `deployment-cookbook`：当准备上线时再重点看，收益最高。
 7. `social-media-agent` / `open-swe`：适合做高级案例拆解，不建议作为第一批学习材料。
 
-## 八、官方文档参考
+## 八、纯 Python / FastAPI 全栈生产级落地（补充调研）
+
+> 补充调研时间：2026-07-23  
+> 动机：前面几节的「全栈 / 前端」几乎都是 Next.js / TypeScript（`agent-chat-ui`、`langchain-nextjs-template`），
+> 只有 `langgraph-fullstack-python` 一个是 Python 全栈。本节专门补齐
+> **纯 Python（FastAPI 或其他）、从前端 UI 到后端大模型的生产级落地**这条线。
+
+### 1. 打通全栈的官方机制：`http.app` 自定义路由
+
+真正让「单个 Python 部署同时托管 Agent + 前端 UI」成立的，是 LangGraph Platform 的
+**custom routes** 机制——在 `langgraph.json` 里通过 `http.app` 挂载**任意 ASGI 应用**
+（FastAPI / FastHTML / Starlette 均可）：
+
+```json
+{
+  "dependencies": ["."],
+  "graphs": {"agent": "./src/agent/graph.py:graph"},
+  "env": ".env",
+  "http": {"app": "./src/agent/webapp.py:app"}
+}
+```
+
+关键点：
+
+- 平台默认已自动暴露 runs / threads / store / assistants 等接口，**不写 FastAPI 也能跑**。
+- `http.app` 用于「超出默认」：挂 `/login`、业务接口，甚至整个前端 UI，全部同一个 server 部署。
+- 自定义路由**优先级高于系统默认**，可覆写默认端点。
+- 这是官方推荐路径，LangServe 已被 LangGraph Server 取代，无需再手写 `app = FastAPI()` 的服务骨架。
+
+### 2. 生产级落地仓库（按贴合度排序）
+
+| 优先级 | 仓库 | 栈 | 覆盖范围 | 生产成熟度 |
+| --- | --- | --- | --- | --- |
+| 1 | [`agent-service-toolkit`](https://github.com/JoshuaC215/agent-service-toolkit)（约 4.4k★） | **LangGraph + FastAPI + Streamlit** | 全栈：Agent 层 / FastAPI 服务 / `AgentClient` / Streamlit UI，Pydantic 贯穿 | **最贴合诉求**。token+message 双模式流式、Postgres/Mongo/SQLite checkpointer、HITL `interrupt()`、Store 长期记忆、RAG(Chroma)、内容审核、Docker compose 三服务、AG-UI 协议（可接 CopilotKit）。测试较全，但单人维护、无正式 release。 |
+| 2 | [`fastapi-langgraph-agent-production-ready-template`](https://github.com/wassim249/fastapi-langgraph-agent-production-ready-template) | **FastAPI + LangGraph（后端为主）** | 生产基础设施全套 | 无前端 UI，但**后端生产化最全**：JWT + session、slowapi 限流、结构化日志、Postgres checkpoint、mem0+pgvector 长期记忆、Langfuse 追踪、Prometheus+Grafana、Alembic 迁移、tenacity 重试 + 多模型环形 fallback、模型评估框架。 |
+| 3 | [`langgraph-fullstack-python`](https://github.com/langchain-ai/langgraph-fullstack-python)（官方） | **LangGraph + FastHTML + DaisyUI** | 最小全栈样板 | 官方演示 `http.app` 单部署托管 UI+Agent。**是 starter 不是 production**：默认无持久化、无鉴权，README 把这些列为 Next Steps。适合看最小骨架。 |
+| 4 | [`chainlit_langgraph`](https://github.com/brucechou1983/chainlit_langgraph) | **LangGraph + Chainlit** | 对话式 UI 快速落地 | 多 LLM 聊天/Agent 从原型到部署，自带 chat 界面、云部署（AWS/Azure/GCP）、自然语言 workflow builder。 |
+
+### 3. 前端 UI 选型（纯 Python，不碰 JS）
+
+| 方案 | 特点 | 适用场景 |
+| --- | --- | --- |
+| **Streamlit** | 生态最成熟、示例最多（`agent-service-toolkit` 即用它）；SSE 流式 token-by-token | 数据 / 内部工具型 UI |
+| **Chainlit** | 天生 chat-native，内置消息流 / 反馈 / 文件，UI 代码最少 | 聊天机器人、对话助手 |
+| **FastHTML** | 服务端渲染 + HTMX，官方样板所用，和 `http.app` 天然契合 | 轻量全栈、单部署 |
+| **Reflex** | 纯 Python 编译成 React，UI 定制自由度最高 | 需要复杂 UI，但需自己接线 LangGraph |
+
+社区反复出现的三层生产架构：
+
+```
+Streamlit / Chainlit  (UI、session、流式渲染)
+        │  POST + SSE
+FastAPI               (/chat 路由、JWT、限流、CORS、Pydantic 校验)
+        │
+LangGraph             (START → node → LLM streaming → END，checkpoint、HITL、Store)
+```
+
+### 4. 选型建议
+
+1. **想要能直接改的全栈起点** → `agent-service-toolkit`（FastAPI + Streamlit + Postgres + Docker，一步到位）。
+2. **只做后端服务、前端另配** → `wassim249` 模板（后端基础设施最全），前端接 `agent-chat-ui` 或自研 Streamlit。
+3. **想吃透官方单部署机制** → 先读官方 custom routes 文档 + `langgraph-fullstack-python` 骨架，再把 `http.app` 换成 FastAPI。
+
+### 5. 工时与难度评估（沿用第七节口径）
+
+| 仓库 | 快速理解 | 本地跑通 | 改造为项目模板 | 难度 | 主要风险点 |
+| --- | --- | --- | --- | --- | --- |
+| `agent-service-toolkit` | 0.5-1 天 | 1-3 天 | 1-2 周 | 4 | 全栈层次多（UI/FastAPI/Agent/checkpointer），生产化需自补鉴权、扩缩容、运维；单人维护需评估长期依赖。 |
+| `fastapi-langgraph-agent-production-ready-template` | 0.5-1 天 | 2-4 天 | 1-2 周 | 4 | 基础设施全但无前端；JWT / 限流 / Langfuse / Prometheus 需逐块理解与对接自有体系。 |
+| `langgraph-fullstack-python` | 0.5 天 | 1 天 | 2-4 天 | 2 | 最小全栈参考，持久化、鉴权、复杂 UI 需自行补齐（同第七节结论）。 |
+| `chainlit_langgraph` | 0.5 天 | 1-2 天 | 3-7 天 | 3 | Chainlit 定制边界、多 LLM 配置、云部署权限需要落地验证。 |
+
+## 九、官方文档参考
 
 - [LangChain overview](https://docs.langchain.com/oss/python/langchain/overview)
 - [LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview)
@@ -239,3 +311,4 @@
 - [LangGraph Application Structure](https://docs.langchain.com/langsmith/application-structure)
 - [LangGraph CLI](https://docs.langchain.com/langsmith/cli)
 - [Memory overview](https://docs.langchain.com/oss/python/concepts/memory)
+- [How to add custom routes（LangGraph Platform）](https://docs.langchain.com/langgraph-platform/custom-routes)
